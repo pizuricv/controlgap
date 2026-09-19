@@ -54,6 +54,9 @@ COST = {
     "Open weights: proliferation": 0, "Open weights: defensive ecosystem": 15,
 }  # fmt: skip
 BUDGET = 100
+# Chapter 8 arrives with something already on: a blank form teaches nothing, and these two
+# pull in opposite directions, which is the chapter's whole point.
+OPENING_MIX = {"Mandatory evaluations and incident reporting": 50, "Open weights: proliferation": 50}
 
 
 def go(name: str):
@@ -627,7 +630,10 @@ def whatif():
         "at once. Dial in a mix and watch the hazard move.",
         "§13 The open-weight question, §14 What levers act on which variables",
     )
-    st.caption("The mapping from driver to term follows the paper. **The effect sizes are placeholders**, there to show direction and structure.")
+    st.caption(
+        "Two drivers are already on, pulling opposite ways, so there is something to read before you touch anything. "
+        "The mapping from driver to term follows the paper. **The effect sizes are placeholders**, there to show direction and structure."
+    )
     head = st.container(key="sticky")
     support = st.container()
     strengths = {}
@@ -635,7 +641,8 @@ def whatif():
         col.markdown(f"**{group}**")
         for lever in (lv for lv in LEVERS if lv.group == group):
             acts = ", ".join(f"{NAMES[k]} {'↑' if u > 0 else '↓'}" for k, u in lever.effects.items())
-            strengths[lever.name] = col.slider(lever.name, 0, 100, 0, 10, format="%d%%", help=lever.description) / 100
+            start = OPENING_MIX.get(lever.name, 0)
+            strengths[lever.name] = col.slider(lever.name, 0, 100, start, 10, format="%d%%", help=lever.description) / 100
             col.caption(f"Acts on: {acts}")
 
     s, base = scenario(), None

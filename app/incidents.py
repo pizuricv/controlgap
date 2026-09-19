@@ -92,7 +92,11 @@ INCIDENTS = [
             "match a registered domain. No model escaped a correctly configured sandbox. Three of the four disclosures trace back to "
             "evaluation-environment misconfigurations at a single third-party evaluator used by all of them."
         ),
-        sources=[("Cloud Security Alliance research note", "https://labs.cloudsecurityalliance.org/research/csa-research-note-agentic-ai-evaluation-containment-risk-202/")],
+        sources=[
+            ("CSO Online", "https://www.csoonline.com/article/4206116/meta-joins-openai-anthropic-in-latest-ai-test-breach.html"),
+            ("Infosecurity Magazine", "https://www.infosecurity-magazine.com/news/meta-ai-exploit-incident/"),
+            ("Cloud Security Alliance research note", "https://labs.cloudsecurityalliance.org/research/csa-research-note-agentic-ai-evaluation-containment-risk-202/"),
+        ],
         teaches=(
             "<b>The shared blind spot, ρ, observed in the wild (§6.2).</b> Three independent organisations, with independent safety teams, lost "
             "containment through the same supplier's misconfiguration. That is not three unlucky coincidences; it is one common cause defeating "
@@ -102,7 +106,9 @@ INCIDENTS = [
         mapping_note=(
             "Containment is the layer that failed — the sandbox — and detection is what caught it afterwards, which is why we know about it "
             "at all. Note that this model orders containment last, while an evaluation sandbox is the layer that is supposed to hold first. "
-            "The ordering does not fit this event, and the score should be read with that in mind."
+            "The ordering does not fit this event, and the score should be read with that in mind. And note the denominator problem: ρ is a "
+            "<i>rate</i>, and three labs sharing one vendor is a numerator with nothing under it. The 0.35 this scenario carries is asserted, "
+            "not fitted."
         ),
         tags=["Common-mode failure", "Containment", "Supply chain"],
     ),

@@ -385,3 +385,23 @@ def test_a_shared_link_starts_the_tour_rather_than_the_last_chapter():
     _bare_session()
     link = ui.share_link()
     assert "/challenge" not in link and "?scenario=" in link
+
+
+def test_chapter_eight_arrives_with_something_to_read():
+    at = app("whatif")
+    strip = next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
+    assert "no change yet" not in strip, "the chapter should not open as a blank form"
+    assert metric(at, "Drivers applied") == "2 of 11"
+    assert metric(at, "Open weights, on net") != "not applied"
+
+
+def test_every_incident_names_at_least_one_source_and_the_cluster_has_two():
+    import incidents
+
+    for incident in incidents.INCIDENTS:
+        assert incident.sources
+        for name, url in incident.sources:
+            assert url.startswith("https://") and name
+    cluster = incidents.BY_KEY["containment"]
+    hosts = {url.split("/")[2] for _, url in cluster.sources}
+    assert len(hosts) >= 2, "a claim about four organisations should not rest on one outlet"
