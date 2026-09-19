@@ -81,6 +81,11 @@ Every value is illustrative. The defaults reproduce the paper's worked example.
 There is also a notebook tour, [`notebooks/controlgap_tour.ipynb`](notebooks/controlgap_tour.ipynb), which walks through
 the paper section by section. Rebuild it with `python notebooks/build_notebook.py`.
 
+### Hosting it
+
+The app deploys as is to [Streamlit Community Cloud](https://share.streamlit.io) (free): choose this repository, the
+**`deploy`** branch and `app/app.py`. CI fast-forwards `deploy` only after the tests pass on `main`, so a broken commit never goes live.
+
 ## Modules
 
 | Module | Paper | Contents |
