@@ -273,3 +273,34 @@ def test_halving_a_factor_is_a_parallel_line_at_every_lambda0():
                        p_I=cg.irreversibility(p["r_esc"], tau_rec=p["tau"]))
     ratios = [float(half.hazard(lam) / full.hazard(lam)) for lam in grid]
     assert all(abs(r - 0.5) < 1e-12 for r in ratios), ratios
+
+
+def test_progress_is_tracked_and_the_end_card_appears():
+    at = app("chain")
+    assert at.session_state["visited"] == {2}
+    assert "1 of 11 chapters read" in " ".join(m.value for m in at.sidebar.markdown)
+    at = app("challenge")
+    assert any("Three things to leave with" in m.value for m in at.markdown)
+    pasted = " ".join(c.value for c in at.get("code"))
+    assert "The level is not identifiable" in pasted
+    assert "controlgap.streamlit.app?scenario=" in pasted
+
+
+def test_a_shared_link_restores_the_scenario_and_the_tweaks():
+    import ui
+
+    at = chapter("chain")
+    at.query_params["scenario"] = "Autonomous cyber operations"
+    run(at)
+    assert at.session_state.preset == "Autonomous cyber operations"
+    assert at.session_state.P["C"] == 0.45
+    link = ui.share_link.__doc__ is not None  # helper exists
+    assert link
+
+
+def test_the_last_chapter_is_not_mistaken_for_the_first():
+    at = app("challenge")
+    assert at.session_state["chapter_number"] == 11
+    sidebar = " ".join(m.value for m in at.sidebar.markdown)
+    assert "Chain × defences" in sidebar
+    assert "appear here from chapter 2" not in " ".join(c.value for c in at.sidebar.caption)

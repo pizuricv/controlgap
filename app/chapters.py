@@ -803,6 +803,34 @@ def uncertainty():
     next_chapter("Chapter 11 · Your turn", go("challenge"))
 
 
+def _end_card(cut: float):
+    """What the reader earned, in a form they can paste to a colleague."""
+    from ui import CHAPTER_COUNT, share_link
+
+    read = len(st.session_state.get("visited", set()))
+    _, _, _, slope, k_growth, gamma_growth = trend()
+    s = scenario()
+    lines = [
+        f"ControlGap — {st.session_state.preset}",
+        f"Hazard trend {cg.hazard_growth(slope):+.0%}/yr (consequence K {k_growth:+.0%}, control Γ {gamma_growth:+.0%}).",
+        f"Residual vulnerability V = {num(s.V, 3)}, and it cannot go below ρ = {float(s.effective_rho):.2f}.",
+        f"Of every 100 events that get through, {float(s.p_I) * 100:.0f} are not recoverable.",
+        f"Best I could do with {BUDGET} points of effort: cut the hazard by {cut:.0%}.",
+        "The level is not identifiable. The trend is. " + share_link(),
+    ]
+    with st.container(border=True):
+        st.markdown(f"##### You read {read} of {CHAPTER_COUNT} chapters")
+        left, right = st.columns([2, 3], gap="large")
+        left.markdown(
+            "**Three things to leave with**\n\n"
+            "1. Nobody can give you the level, and anyone who does has picked λ₀ without saying so.\n"
+            "2. The trend is measurable today, and it is the thing worth arguing about.\n"
+            "3. Once your layers are decent, independence beats strength."
+        )
+        right.markdown("**Your run, ready to paste**")
+        right.code("\n".join(lines), language=None, wrap_lines=True)
+
+
 # ================================================================ 10. Challenge
 def _best_allocation(base_rate: float, budget: int, step: int = 5) -> tuple[dict, float]:
     """Greedy search: spend the budget where each step buys the most reduction."""
@@ -900,6 +928,7 @@ def challenge():
         "sizes with evidence — that is what the package is for."
     )
     st.divider()
+    _end_card(cut if not over else 0.0)
     st.markdown(
         f"#### That's the tour\n\nThe model, the package and the paper are open, and free for anyone to use.\n\n"
         f"- **Paper** — [The AI Drake Equation]({PAPER}), CC BY 4.0\n"

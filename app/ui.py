@@ -12,6 +12,7 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
+from urllib.parse import quote
 
 import controlgap as cg
 from incidents import INCIDENTS
@@ -187,6 +188,45 @@ def defaults(name: str) -> dict:
     return {k: v for k, v in PRESETS[name].items() if k in KEYS + GROWTH_KEYS}
 
 
+CHAPTER_COUNT = 11
+MINUTES_EACH = 1.4
+
+
+def share_link() -> str:
+    """The current scenario, packed into a URL, so a configured tour can be sent to someone."""
+    import base64
+    import json
+
+    preset = PRESETS[st.session_state.preset]
+    changed = {k: v for k, v in P().items() if k in preset and v != preset[k]}
+    token = base64.urlsafe_b64encode(json.dumps(changed, separators=(",", ":")).encode()).decode().rstrip("=")
+    base = (getattr(st.context, "url", None) or "https://controlgap.streamlit.app").split("?")[0]
+    return f"{base}?scenario={quote(st.session_state.preset)}" + (f"&tweak={token}" if changed else "")
+
+
+def _restore_from_link():
+    """A ?scenario=...&tweak=... link sets the tour up the way it was sent."""
+    import base64
+    import json
+
+    params = st.query_params
+    name = params.get("scenario")
+    stamp = f"{name}{params.get('tweak', '')}"
+    if not name or name not in PRESETS or st.session_state.get("link_loaded") == stamp:
+        return
+    load_preset(name)
+    token = params.get("tweak")
+    if token:
+        try:
+            padded = token + "=" * (-len(token) % 4)
+            for key, value in json.loads(base64.urlsafe_b64decode(padded)).items():
+                if key in KEYS + GROWTH_KEYS:
+                    st.session_state.P[key] = value
+        except Exception:  # a mangled link should never break the app
+            pass
+    st.session_state["link_loaded"] = stamp
+
+
 def init():
     st.session_state.setdefault("preset", FIRST)
     if st.session_state.preset not in PRESETS:  # a link or an older session
@@ -195,6 +235,7 @@ def init():
     store = st.session_state.setdefault("P", dict(base))
     for key, value in base.items():  # top up anything a stale session is missing
         store.setdefault(key, value)
+    _restore_from_link()
     st.session_state.setdefault("seen_intro", False)
     st.session_state.setdefault("gated", False)
     st.session_state.setdefault("C0", 0.5)
@@ -264,7 +305,10 @@ def trend(horizon: int | None = None):
 # ---------------------------------------------------------------- pieces
 def opener(kicker: str, heading: str, lede: str, section: str = ""):
     st.session_state["current_chapter"] = f"{kicker} — {heading}"
-    st.session_state.setdefault("visited", set()).add(kicker.split("\u00b7")[0].strip())
+    number = kicker.split(" of ")[0].replace("Chapter", "").strip()
+    st.session_state["chapter_number"] = int(number) if number.isdigit() else 0
+    if number.isdigit():
+        st.session_state.setdefault("visited", set()).add(int(number))
     st.markdown(
         f'<div class="cg-kicker">{kicker}</div><div class="cg-h">{heading}</div><div class="cg-lede">{lede}</div>',
         unsafe_allow_html=True,
@@ -429,7 +473,7 @@ def sidebar_readout() -> None:
     sb.divider()
     preset = PRESETS[st.session_state.preset]
     sb.markdown(f"**{preset['icon']} {st.session_state.preset}**")
-    if st.session_state.get("current_chapter", "").startswith("Chapter 1"):
+    if st.session_state.get("chapter_number") == 1:  # not a prefix test: "Chapter 11" starts with "Chapter 1"
         sb.caption(preset["about"])
         sb.caption("Your running numbers appear here from chapter 2 onwards, and follow you through the tour.")
     else:
@@ -465,6 +509,16 @@ def sidebar_readout() -> None:
                 on_click=load_preset,
                 args=(name,),
             )
+    read = len(st.session_state.get("visited", set()))
+    sb.divider()
+    sb.markdown(f"**{read} of {CHAPTER_COUNT} chapters read**")
+    sb.progress(read / CHAPTER_COUNT)
+    if read < CHAPTER_COUNT:
+        sb.caption(f"About {max(1, round((CHAPTER_COUNT - read) * MINUTES_EACH))} minutes left.")
+    with sb.popover("Share this scenario", width="stretch", icon=":material/link:"):
+        st.caption("Opens with your scenario, and any changes you have made already applied.")
+        st.code(share_link(), language=None, wrap_lines=True)
+
     sb.divider()
     with sb.expander("Tell us we're wrong"):
         st.caption("Opens a pre-filled issue on GitHub under your own account. Your current settings travel with it.")
