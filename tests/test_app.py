@@ -15,7 +15,7 @@ def run(at):
 
 
 def metric(at, label):
-    return next(m.value for m in at.metric if m.label == label)
+    return next(m.value for m in at.metric if m.label.endswith(label))
 
 
 def test_defaults_reproduce_section_12():
@@ -41,7 +41,8 @@ def test_what_if_and_presets():
     sliders = {w.label: w for w in at.slider}
     sliders["Open weights: proliferation"].set_value(100)
     run(at)
-    assert metric(at, "Hazard changes by").startswith("×") and float(metric(at, "Hazard changes by")[1:]) > 1
+    strip = next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
+    assert float(strip.split('cg-strip-num">×')[1].split("<")[0]) > 1 and "raises hazard" in strip
     {w.label: w for w in at.slider}["Open weights: defensive ecosystem"].set_value(100)
     at.selectbox[0].set_value("Autonomous cyber operations")
     run(at)
@@ -54,11 +55,11 @@ def test_intro_shows_once_and_can_be_reopened():
     next(b for b in at.button if b.label == "Next").click()
     run(at)
     assert at.session_state.intro_step == 1
-    next(b for b in at.button if b.label == "Skip").click()
+    next(b for b in at.button if b.label == "Skip intro").click()
     run(at)
     assert not at.session_state.intro_open
     assert not [b for b in at.button if b.label == "Next"]
-    next(b for b in at.button if b.label == "Show intro").click()
+    next(b for b in at.button if b.label == "How to read this app").click()
     run(at)
     assert at.session_state.intro_open and at.session_state.intro_step == 0
 
