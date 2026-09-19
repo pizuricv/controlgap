@@ -69,9 +69,9 @@ paper, with every number live. Pick a scenario, move the sliders, and each chapt
 
 | | |
 |---|---|
-| 1 · Start here | The question, and a scenario to carry with you |
+| 1 · Start here | The question, and a scenario to carry with you — including three real, cited incidents you can start from |
 | 2 · The chain | Five things must line up. Watch the hazard shrink through them |
-| 3 · The missing number | Why there is no headline p(doom): it all rides on λ₀ |
+| 3 · The missing number | Why there is no headline p(doom). Three defensible priors, side by side, from 0.04% to 33% |
 | 4 · The layers | Three good layers, one shared blind spot, and the floor it puts under V |
 | 5 · The race | Escalation against recovery — where reversibility is won or lost |
 | 6 · What nearly happened | Real, cited incidents placed on the paper's precursor ladder and scored — then fit the elasticities from counts |
@@ -79,7 +79,10 @@ paper, with every number live. Pick a scenario, move the sliders, and each chapt
 | 8 · What if | Model advances, governments and open weights, and the terms each one moves |
 | 9 · The control gap | The one number that survives: is capability outrunning control? |
 | 10 · How much we know | Correlated uncertainty, and how much of the spread is assumed |
-| 11 · Your turn | Spend a budget of effort and buy the hazard down |
+| 11 · Your turn | Four budgets over ten years against a world that keeps moving, and one event you get no vote on |
+
+Chapters you have read are ticked in the nav, the tour ends on a card you can paste to a colleague, and any scenario can be
+shared as a link that reopens it with your own settings applied.
 
 Run it yourself:
 
