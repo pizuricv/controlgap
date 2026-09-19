@@ -13,6 +13,7 @@ from controlgap.levers import GROUPS, LEVERS, apply_levers
 from controlgap.mc import MCConfig, beta_params, simulate, spread_decomposition
 from incidents import BY_KEY, INCIDENTS, RUNGS
 from ui import (
+    BASE_PRESETS,
     FIT,
     INCIDENT_ISSUE,
     KEYS,
@@ -64,6 +65,12 @@ def _pick_incident(key: str):
     st.session_state["incident"] = key
 
 
+def _start_from_incident(key: str):
+    """Selecting an event sets it as your scenario, exactly like the scenario cards."""
+    _pick_incident(key)
+    load_preset(BY_KEY[key].scenario_name)
+
+
 def incident_cards(on_start: bool = False):
     """The precursor events as cards, in the same language as the scenario cards."""
     selected = st.session_state.get("incident", INCIDENTS[0].key)
@@ -78,9 +85,16 @@ def incident_cards(on_start: bool = False):
                 unsafe_allow_html=True,
             )
             if on_start:
-                if st.button("Look at this one", key=f"start_{incident.key}", width="stretch"):
-                    _pick_incident(incident.key)
-                    st.switch_page(go("precursors"))
+                chosen = st.session_state.preset == incident.scenario_name
+                st.button(
+                    "Selected" if chosen else "Choose",
+                    key=f"start_{incident.key}",
+                    width="stretch",
+                    type="primary" if chosen else "secondary",
+                    disabled=chosen,
+                    on_click=_start_from_incident,
+                    args=(incident.key,),
+                )
             else:
                 st.button(
                     "Showing" if active else "Examine",
@@ -134,7 +148,7 @@ For a catastrophe, **every one of these has to line up at once**:
     st.write("")
     st.markdown("#### Pick a scenario to carry with you")
     st.caption("It sets every starting value. You can change it any time, and switch scenarios from the sidebar. All values are illustrative.")
-    for col, (name, preset) in zip(st.columns(len(PRESETS), gap="medium"), PRESETS.items()):
+    for col, (name, preset) in zip(st.columns(len(BASE_PRESETS), gap="medium"), BASE_PRESETS.items()):
         active = name == st.session_state.preset
         with col.container(key=f"card_active" if active else f"card_{abs(hash(name)) % 10**6}"):
             st.markdown(
@@ -154,8 +168,8 @@ For a catastrophe, **every one of these has to line up at once**:
     st.write("")
     st.markdown("#### Or start from something that actually happened")
     st.caption(
-        "Three real, cited events, each scored by how close it came. They are what chapter 6 calibrates on — and the only place "
-        "in this model where real numbers can enter."
+        "Three real, cited events. Choosing one sets your scenario from that event and you carry it through the tour, just like the "
+        "four above. Chapter 6 comes back to them and scores how close each one came."
     )
     incident_cards(on_start=True)
     next_chapter("Chapter 2 · The chain", go("chain"))
@@ -425,6 +439,11 @@ def precursors_chapter():
                 help="Scored against your current layer effectivenesses, ρ and p_I. Getting past layers is evidence that a shared weakness is in play, so the honest score beats the naive one.")  # fmt: skip
             st.caption(f"Passed **{n}** of 3 layers before something stopped it.")
         st.info(incident.mapping_note, icon=":material/rule:")
+        if st.session_state.preset == incident.scenario_name:
+            st.success("Your scenario is set from this event.", icon=":material/check:")
+        elif st.button("Use this event as my scenario", width="stretch", icon=":material/tune:"):
+            _start_from_incident(incident.key)
+            st.rerun()
 
     takeaway(incident.teaches)
     if incident.caveat:

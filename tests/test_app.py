@@ -215,3 +215,18 @@ def test_incident_cards_appear_on_the_start_page_and_select_one():
     run(at)
     assert at.session_state["incident"] == second.key
     assert second.title in " ".join(m.value for m in at.markdown)
+
+
+def test_an_incident_can_be_started_from_like_any_scenario():
+    import incidents
+    import ui
+
+    first = incidents.INCIDENTS[0]
+    assert first.scenario_name in ui.PRESETS, "each event should also be a scenario"
+    at = app("start")
+    next(b for b in at.button if b.key == f"start_{first.key}").click()
+    run(at)
+    assert at.session_state.preset == first.scenario_name
+    assert at.session_state.P["X"] == first.preset["X"]
+    # and the tour continues from chapter 2, exactly like the scenario cards
+    assert any("Chapter 2" in b.label for b in at.button)

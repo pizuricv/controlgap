@@ -37,7 +37,14 @@ def main(base: str) -> int:
         page = browser.new_page(viewport={"width": 1440, "height": 950})
         for path in CHAPTERS:
             page.goto(f"{base}/{path}", wait_until="domcontentloaded", timeout=120_000)
-            page.wait_for_timeout(15_000 if path in ("", "uncertainty", "challenge") else 6_000)  # these two sample before they draw
+            slow = path in ("", "uncertainty", "challenge")  # these sample or search before they draw
+            deadline = 40_000 if slow else 12_000
+            waited = 0
+            while waited < deadline:
+                page.wait_for_timeout(2_000)
+                waited += 2_000
+                if app_frame(page).evaluate("() => !!document.querySelector('.cg-h')"):
+                    break
             frame = app_frame(page)
             heading = frame.evaluate("() => document.querySelector('.cg-h')?.textContent?.trim() || ''")
             crashed = frame.evaluate("() => document.body.innerText.includes('Traceback (most recent call last)')")
@@ -49,11 +56,21 @@ def main(base: str) -> int:
         page.mouse.wheel(0, 520)
         page.wait_for_timeout(2_000)
         frame = app_frame(page)
-        cards = frame.evaluate("() => [...document.querySelectorAll('[class*=\"st-key-card_\"]')].map(e => Math.round(e.getBoundingClientRect().height))")
-        buttons = frame.evaluate("() => [...document.querySelectorAll('[class*=\"st-key-card_\"] button')].map(e => Math.round(e.getBoundingClientRect().y))")
-        if cards and (max(cards) - min(cards) > 1 or max(buttons) - min(buttons) > 1):
-            failures.append(f"scenario cards are not aligned: heights {cards}, buttons {buttons}")
-        print(f"  cards: heights {cards}, buttons {buttons}")
+        # the page has more than one row of cards, so compare only within a row
+        cards = frame.evaluate("""() => [...document.querySelectorAll('[class*="st-key-card_"]')].map(e => {
+            const r = e.getBoundingClientRect();
+            const b = e.querySelector('button');
+            return {top: Math.round(r.y), height: Math.round(r.height), button: b ? Math.round(b.getBoundingClientRect().y) : null};
+        })""")
+        rows: dict[int, list[dict]] = {}
+        for card in cards:
+            rows.setdefault(card["top"] // 40, []).append(card)
+        for row in rows.values():
+            heights = [c["height"] for c in row]
+            buttons = [c["button"] for c in row if c["button"] is not None]
+            if max(heights) - min(heights) > 1 or (buttons and max(buttons) - min(buttons) > 1):
+                failures.append(f"a row of cards is not aligned: heights {heights}, buttons {buttons}")
+        print(f"  cards: {len(rows)} row(s), heights {[[c['height'] for c in r] for r in rows.values()]}")
         browser.close()
 
     print("\nFAILURES:" if failures else "\nall good")

@@ -14,6 +14,7 @@ import pandas as pd
 import streamlit as st
 
 import controlgap as cg
+from incidents import INCIDENTS
 
 REPO = "https://github.com/pizuricv/controlgap"
 PAPER = f"{REPO}/blob/main/paper/ai-drake-equation-v4.md"
@@ -53,7 +54,18 @@ PRESETS = {
         C=0.60, A=0.90, O=0.80, X=0.50, M=1.00, e0=0.50, e1=0.40, e2=0.60, rho=0.25, r_esc=4.0, tau=2.0, g=0.0,
         gnu=14, gC=5, gA=2, gO=6, gX=4, gM=0, de0=1.0, de1=0.5, de2=0.0, drho=1.0, dtau=-2, horizon=10),
 }  # fmt: skip
-FIRST = next(iter(PRESETS))
+
+# Every precursor event is also a scenario, so the tour can be started from a real one.
+FROM_INCIDENTS = {
+    incident.scenario_name: dict(
+        icon=incident.scenario_icon, short=incident.scenario_short,
+        tagline="From a real event.", about=incident.scenario_why, incident=incident.key, **incident.preset,
+    )
+    for incident in INCIDENTS
+}
+BASE_PRESETS = dict(PRESETS)  # the four written for this app, without the ones derived from real events
+PRESETS |= FROM_INCIDENTS
+FIRST = next(iter(BASE_PRESETS))
 
 CSS = """
 <style>
