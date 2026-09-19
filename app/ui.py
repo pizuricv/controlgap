@@ -33,22 +33,22 @@ GROWTH_KEYS = ("gnu", "gC", "gA", "gO", "gX", "gM", "de0", "de1", "de2", "drho",
 # Every preset is illustrative. None of these values is a measurement.
 PRESETS = {
     "The paper's example": dict(
-        icon="📄", tagline="The numbers used throughout the paper.",
+        icon="📄", short="The paper's example", tagline="The numbers used throughout the paper.",
         about="Propensity is at its worst case and capability is not coupled to anything else. Start here if you want the figures in §12 to match.",
         C=0.20, A=0.70, O=0.50, X=0.60, M=1.00, e0=0.60, e1=0.50, e2=0.50, rho=0.10, r_esc=1.0, tau=1.0, g=0.0,
         gnu=10, gC=5, gA=2, gO=4, gX=3, gM=0, de0=1.5, de1=1.0, de2=0.0, drho=0.5, dtau=-3, horizon=10),
     "Autonomous cyber operations": dict(
-        icon="💻", tagline="The system is the one acting.",
+        icon="💻", short="Autonomous cyber ops", tagline="The system is the one acting.",
         about="Events move in hours. Capability helps the system get its own access and evade its own oversight, so coupling is on.",
         C=0.45, A=0.60, O=0.70, X=0.70, M=0.15, e0=0.70, e1=0.50, e2=0.40, rho=0.15, r_esc=2.0, tau=0.5, g=0.40,
         gnu=18, gC=8, gA=3, gO=7, gX=5, gM=2, de0=2.0, de1=1.0, de2=0.5, drho=0.5, dtau=-5, horizon=10),
     "AI-enabled biological misuse": dict(
-        icon="🧬", tagline="A human is the one acting.",
+        icon="🧬", short="AI-enabled bio misuse", tagline="A human is the one acting.",
         about="Very few people would try, and agency barely matters. But a release cannot be recalled, so recovery is slow and the damage is hard to undo.",
         C=0.30, A=0.50, O=0.20, X=0.30, M=0.05, e0=0.80, e1=0.60, e2=0.50, rho=0.05, r_esc=0.2, tau=10.0, g=0.0,
         gnu=8, gC=6, gA=4, gO=1, gX=2, gM=0, de0=1.0, de1=1.0, de2=0.5, drho=0.0, dtau=-2, horizon=10),
     "Cascading infrastructure failure": dict(
-        icon="⚡", tagline="Nobody has to intend it.",
+        icon="⚡", short="Cascading infra failure", tagline="Nobody has to intend it.",
         about="An accident, so propensity sits at 1. Tightly coupled systems share their weaknesses, so the common-mode rate is high and escalation is fast.",
         C=0.60, A=0.90, O=0.80, X=0.50, M=1.00, e0=0.50, e1=0.40, e2=0.60, rho=0.25, r_esc=4.0, tau=2.0, g=0.0,
         gnu=14, gC=5, gA=2, gO=6, gX=4, gM=0, de0=1.0, de1=0.5, de2=0.0, drho=1.0, dtau=-2, horizon=10),
@@ -102,12 +102,22 @@ CSS = """
 .cg-chip {font-size: .85rem; font-weight: 600; padding: .1rem .6rem; border-radius: 1rem; background: rgba(128,128,128,.16);}
 .cg-strip-note {font-size: .85rem; opacity: .8;}
 
-/* Scenario cards */
-[class*="st-key-card_"] {border: 1px solid rgba(128,128,128,.28); border-radius: .6rem; padding: .9rem 1rem .4rem; height: 100%;}
+/* Scenario cards: equal height, and the button pinned to the bottom of each */
+[class*="st-key-card_"] {border: 1px solid rgba(128,128,128,.28); border-radius: .6rem; padding: .9rem 1rem .9rem;
+                         height: 100%; display: flex; flex-direction: column;}
+/* the column stretches, but its wrappers need telling to pass that height down to the card */
+[data-testid="stColumn"]:has([class*="st-key-card_"]) > [data-testid="stVerticalBlock"] {height: 100%;}
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-card_"]) {height: 100%;}
+[class*="st-key-card_"] > [data-testid="stElementContainer"]:first-child {flex: 1 1 auto;}
 [class*="st-key-card_"] .cg-card-icon {font-size: 1.7rem; line-height: 1;}
-[class*="st-key-card_"] .cg-card-name {font-weight: 700; font-size: 1.02rem; margin-top: .3rem;}
-[class*="st-key-card_"] .cg-card-body {font-size: .87rem; opacity: .82; line-height: 1.45; margin: .2rem 0 .5rem;}
+[class*="st-key-card_"] .cg-card-name {font-weight: 700; font-size: 1.02rem; margin-top: .3rem; line-height: 1.3; min-height: 2.7em;}
+[class*="st-key-card_"] .cg-card-body {font-size: .87rem; opacity: .82; line-height: 1.45; margin: .2rem 0 .6rem;}
 .st-key-card_active {border-color: #2a78d6; border-width: 2px; background: rgba(42,120,214,.06);}
+/* four abreast gets cramped below ~1150px, so wrap to 2x2 and keep the titles on two lines */
+@media (max-width: 1150px) {
+  [data-testid="stHorizontalBlock"]:has([class*="st-key-card_"]) {flex-wrap: wrap;}
+  [data-testid="stColumn"]:has([class*="st-key-card_"]) {flex: 1 1 42%; min-width: 260px;}
+}
 
 /* Quiet "try this" callout */
 [class*="st-key-try_"] {background: rgba(128,128,128,.09); border-radius: .5rem; padding: .8rem 1rem .6rem;}

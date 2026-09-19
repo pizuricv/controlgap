@@ -14,7 +14,7 @@ dark = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
 st.markdown(ui.CSS.replace("__BG__", "#15171b" if dark else "#ffffff"), unsafe_allow_html=True)
 
 PAGES = {
-    "start": st.Page(chapters.start, title="Start here", icon=":material/play_circle:", url_path="start", default=True),
+    "start": st.Page(chapters.start, title="Start here", icon=":material/play_circle:", default=True),  # the default page is always served at "/"
     "chain": st.Page(chapters.chain, title="The chain", icon=":material/link:", url_path="chain"),
     "lambda0": st.Page(chapters.lambda0, title="The missing number", icon=":material/help:", url_path="missing-number"),
     "layers": st.Page(chapters.layers, title="The layers", icon=":material/shield:", url_path="layers"),

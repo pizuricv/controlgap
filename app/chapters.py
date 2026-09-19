@@ -102,7 +102,7 @@ For a catastrophe, **every one of these has to line up at once**:
         active = name == st.session_state.preset
         with col.container(key=f"card_active" if active else f"card_{abs(hash(name)) % 10**6}"):
             st.markdown(
-                f'<div class="cg-card-icon">{preset["icon"]}</div><div class="cg-card-name">{name}</div>'
+                f'<div class="cg-card-icon">{preset["icon"]}</div><div class="cg-card-name">{preset["short"]}</div>'
                 f'<div class="cg-card-body"><b>{preset["tagline"]}</b><br>{preset["about"]}</div>',
                 unsafe_allow_html=True,
             )
