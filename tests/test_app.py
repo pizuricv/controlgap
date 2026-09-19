@@ -61,3 +61,15 @@ def test_intro_shows_once_and_can_be_reopened():
     next(b for b in at.button if b.label == "Show intro").click()
     run(at)
     assert at.session_state.intro_open and at.session_state.intro_step == 0
+
+
+def test_tiny_hazard_is_never_shown_as_zero_and_banner_gives_the_level():
+    at = run(AppTest.from_file(APP))
+    sliders = {w.label: w for w in at.slider}
+    for label in ("Capability C", "Access A", "Agency O", "Exposure X", "Propensity M"):
+        sliders[label].set_value(0.01)
+    run(at)
+    assert "× 10⁻" in metric(at, "Combined factor")
+    banner = next(m.value for m in at.markdown if 'class="cg-hero"' in m.value)
+    assert "from a very low base" in banner
+    assert "× 10⁻" in banner or "lower than" in banner

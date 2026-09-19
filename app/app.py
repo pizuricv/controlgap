@@ -163,7 +163,7 @@ def sidebar() -> dict:
 def scenario(p: dict, **override) -> cg.Scenario:
     """Build a Scenario from the sidebar values. Any field can be overridden, by a number or a time series."""
     v = {**p, **override}
-    g = p["g"]
+    g = v["g"]
     return cg.Scenario(
         "playground", C=v["C"], A=v["A"], O=v["O"], X=v["X"], M=v["M"], effectiveness=(v["e0"], v["e1"], v["e2"]), rho=v["rho"],
         p_I=cg.irreversibility(v["r_esc"], tau_rec=v["tau"]), nu=v["nu"],
@@ -189,7 +189,7 @@ CSS = """
 /* Compact page header, so the controls of each tab start above the fold */
 [data-testid="stMainBlockContainer"] {padding-top: 2.6rem;}
 .cg-title {display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem 1rem; margin-bottom: .2rem;}
-.cg-title h1 {font-size: 2.1rem; padding: 0; margin: 0;}
+.cg-title .cg-name {font-size: 2.1rem; font-weight: 700; line-height: 1.15;}
 .cg-title span {font-size: 1.02rem; opacity: .8;}
 /* What-if results stay in view while the sliders below are dragged */
 /* (Streamlit wraps the container in a same-height layout wrapper, so the wrapper is what has to stick.) */
@@ -215,6 +215,36 @@ CSS = """
 """
 
 
+SUPERSCRIPT = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+
+def num(x: float, decimals: int = 3) -> str:
+    """Fixed decimals for ordinary values, scientific notation once they would round towards zero."""
+    x = float(x)
+    if x == 0 or abs(x) >= 10.0 ** -(decimals - 2):
+        return f"{x:.{decimals}f}"
+    mantissa, exponent = f"{x:.1e}".split("e")
+    return f"{mantissa} × 10{str(int(exponent)).translate(SUPERSCRIPT)}"
+
+
+def tex(x: float, decimals: int = 2) -> str:
+    x = float(x)
+    if x == 0 or abs(x) >= 10.0**-decimals:
+        return f"{x:.{decimals}f}"
+    mantissa, exponent = f"{x:.1e}".split("e")
+    return rf"{mantissa}\!\times\!10^{{{int(exponent)}}}"
+
+
+def times(ratio: float) -> str:
+    """A hazard ratio in words."""
+    if 0.95 <= ratio <= 1.05:
+        return "the same as"
+    if ratio >= 1:
+        return f"{ratio:,.1f}× higher than" if ratio < 100 else f"{ratio:,.0f}× higher than"
+    inverse = 1 / ratio
+    return f"{inverse:,.1f}× lower than" if inverse < 100 else (f"{inverse:,.0f}× lower than" if inverse < 1e6 else f"{num(ratio, 3)} of")
+
+
 def focus(name: str, why: str):
     """A keyed container that marks one metric per tab as the number to watch."""
     box = st.container(key=f"focus_{name}")
@@ -222,22 +252,26 @@ def focus(name: str, why: str):
     return box
 
 
-def render_hero(box, slope: float, k_growth: float, gamma_growth: float, horizon: int):
+def render_hero(box, slope: float, k_growth: float, gamma_growth: float, horizon: int, level: float, preset: str):
     growth = cg.hazard_growth(slope)
     if slope > 0.005:
-        verdict = "▲ Consequential capability is outrunning control"
+        verdict, pace = "▲ Consequential capability is outrunning control", f"doubles every {np.log(2) / slope:.1f} years"
     elif slope < -0.005:
-        verdict = "▼ Control is catching up"
+        verdict, pace = "▼ Control is catching up", f"halves every {np.log(2) / -slope:.1f} years"
     else:
-        verdict = "■ Capability and control are in balance"
+        verdict, pace = "■ Capability and control are in balance", "roughly flat"
+    if level < 0.01 and slope > 0.005:
+        verdict += ", from a very low base"
     box.markdown(
         f"""<div class="cg-hero">
 <div><div class="cg-eyebrow">The number to watch · hazard trend</div>
-<div class="cg-big">{growth:+.0%} <small>per year</small></div>
+<div class="cg-big">{growth:+.0%} <small>per year · {pace}</small></div>
 <div class="cg-verdict">{verdict}</div></div>
-<div class="cg-side">Consequence side <b>K {k_growth:+.0%}</b> / yr &nbsp;versus&nbsp; control side <b>Γ {gamma_growth:+.0%}</b> / yr, over {horizon} years from 2026.
-<div class="cg-note">This is a <i>trend</i>: how fast the hazard is changing relative to 2026. It is not a probability and not a forecast.
-It is the one quantity in the model that does not depend on the unknown λ₀. Set the yearly trends in the <i>Control Gap Index</i> tab.</div></div>
+<div class="cg-side"><b>Trend.</b> Consequence side <b>K {k_growth:+.0%}</b> / yr versus control side <b>Γ {gamma_growth:+.0%}</b> / yr, over {horizon} years from 2026.
+Set these yearly trends in the <i>Control Gap Index</i> tab.<br>
+<b>Level.</b> With your sidebar settings the hazard today is <b>{times(level)}</b> the scenario <i>{preset}</i> as it ships.
+<div class="cg-note">The trend says how fast the hazard is <i>changing</i>, not how big it is: a tiny hazard can grow fast, and a large one can shrink.
+Neither number is a probability or a forecast, and neither depends on the unknown λ₀.</div></div>
 </div>""",
         unsafe_allow_html=True,
     )
@@ -262,16 +296,16 @@ if st.session_state.intro_open:
 
 dark = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
 st.markdown(CSS.replace("__BG__", "#0e1117" if dark else "#ffffff"), unsafe_allow_html=True)
-st.markdown('<div class="cg-title"><h1>ControlGap</h1><span>When does AI capability become <i>consequential power</i>? · The AI Drake Equation, as code</span></div>', unsafe_allow_html=True)
+st.markdown('<div class="cg-title"><div class="cg-name">ControlGap</div><span>When does AI capability become <i>consequential power</i>? · The AI Drake Equation, as code</span></div>', unsafe_allow_html=True)
 hero = st.container()  # filled once the trend has been computed, further down
 
 blocks = st.container(key="blocks")
 blocks.caption("**Building blocks of the hazard.** Watch them move as you change the sidebar. None of them is the answer on its own.")
 cols = blocks.columns(4)
-cols[0].metric("Consequence: index term", f"{float(s.indices):.4f}", help="C · A · O · X · M after gates and coupling")
-cols[1].metric("Residual vulnerability V", f"{float(s.V):.3f}", help=f"Chance an event gets past every layer. Floor: V ≥ ρ = {p['rho']:.2f}")
-cols[2].metric("Irreversibility p_I", f"{float(s.p_I):.3f}", help="Chance an event that got through escalates before we recover")
-cols[3].metric("Combined factor", f"{float(s.factor):.5f}", help="Not a probability. It becomes one only once you choose λ₀.")
+cols[0].metric("Consequence: index term", num(s.indices, 4), help="C · A · O · X · M after gates and coupling")
+cols[1].metric("Residual vulnerability V", num(s.V, 3), help=f"Chance an event gets past every layer. Floor: V ≥ ρ = {p['rho']:.2f}")
+cols[2].metric("Irreversibility p_I", num(s.p_I, 3), help="Chance an event that got through escalates before we recover")
+cols[3].metric("Combined factor", num(s.factor, 5), help="Not a probability. It becomes one only once you choose λ₀.")
 
 tab_intro, tab_p, tab_def, tab_levers, tab_whatif, tab_cgi, tab_mc = st.tabs(
     ["Start here", "Probability", "Defences", "Levers", "What if", "Control Gap Index", "Monte Carlo"]
@@ -293,10 +327,10 @@ faster than we can **detect, stop, contain and recover**. For a catastrophe, eve
     eff = s.effective
     left.latex(
         r"\lambda \;=\; \lambda_0 \times "
-        + r" \times ".join(rf"\underbrace{{{float(eff[k]):.2f}}}_{{{k}}}" for k in "CAOXM")
-        + rf" \times \underbrace{{{float(s.V):.3f}}}_{{V}} \times \underbrace{{{float(s.p_I):.2f}}}_{{p_I}}"
+        + r" \times ".join(rf"\underbrace{{{tex(eff[k])}}}_{{{k}}}" for k in "CAOXM")
+        + rf" \times \underbrace{{{tex(s.V, 3)}}}_{{V}} \times \underbrace{{{tex(s.p_I, 3)}}}_{{p_I}}"
     )
-    left.latex(rf"\lambda \;=\; \lambda_0 \times {float(s.factor):.5f}")
+    left.latex(rf"\lambda \;=\; \lambda_0 \times {tex(s.factor, 5)}")
     left.markdown(
         """
 The first five terms are the **consequence side**, the last two are the **control side**, and **λ₀** is the
@@ -522,7 +556,8 @@ with tab_cgi:
 
     K, Gamma = sum(parts[k] for k in ("nu", "C", "A", "O", "X", "M")), -(parts["V"] + parts["p_I"])
     k_growth, gamma_growth = float(np.expm1(K[-1] / horizon)), float(np.expm1(Gamma[-1] / horizon))
-    render_hero(hero, slope, k_growth, gamma_growth, horizon)
+    shipped = scenario(p, **{k: PRESETS[st.session_state.preset][k] for k in KEYS})
+    render_hero(hero, slope, k_growth, gamma_growth, horizon, rate(s) / rate(shipped), st.session_state.preset)
     with c:
         focus("cgi", "the same number as the banner above").metric("Implied hazard growth", f"{cg.hazard_growth(slope):+.0%} / yr", f"CGI slope {slope:+.3f}", delta_color="off")
     c.metric("Consequential capability K", f"{k_growth:+.0%} / yr")
