@@ -184,6 +184,65 @@ def line(df: pd.DataFrame, x: alt.X, y: alt.Y, colour=None, tooltip=None, width:
     return alt.Chart(df).mark_line(strokeWidth=width, color=S1).encode(**enc)
 
 
+CSS = """
+<style>
+/* Compact page header, so the controls of each tab start above the fold */
+[data-testid="stMainBlockContainer"] {padding-top: 2.6rem;}
+.cg-title {display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem 1rem; margin-bottom: .2rem;}
+.cg-title h1 {font-size: 2.1rem; padding: 0; margin: 0;}
+.cg-title span {font-size: 1.02rem; opacity: .8;}
+/* What-if results stay in view while the sliders below are dragged */
+/* (Streamlit wraps the container in a same-height layout wrapper, so the wrapper is what has to stick.) */
+[data-testid="stLayoutWrapper"]:has(> .st-key-whatif_head) {position: sticky; top: 3.75rem; z-index: 90;}
+.st-key-whatif_head {background: __BG__; box-shadow: 0 6px 14px -10px rgba(0,0,0,.45);}
+/* The one number to watch, at the top of every tab */
+.cg-hero {border: 1px solid rgba(128,128,128,.25); border-left: 6px solid #2a78d6; border-radius: 10px; padding: .75rem 1.3rem; margin: .3rem 0 .6rem;
+          display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; align-items: center; background: rgba(42,120,214,.06);}
+.cg-eyebrow {font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; font-weight: 600; opacity: .7;}
+.cg-hero .cg-big {font-size: 2.6rem; font-weight: 700; line-height: 1.05; margin: .15rem 0;}
+.cg-hero .cg-big small {font-size: 1.1rem; font-weight: 500; opacity: .75;}
+.cg-hero .cg-verdict {font-size: 1.05rem; font-weight: 600;}
+.cg-hero .cg-side {flex: 1 1 320px; font-size: .92rem; line-height: 1.5;}
+.cg-hero .cg-side b {font-variant-numeric: tabular-nums;}
+.cg-hero .cg-note {opacity: .7; font-size: .85rem; margin-top: .35rem;}
+/* Supporting numbers are smaller than the focus number */
+.st-key-blocks [data-testid="stMetricValue"] {font-size: 1.35rem;}
+.st-key-blocks [data-testid="stMetricLabel"] {opacity: .8;}
+/* Each tab's own number to watch */
+[class*="st-key-focus_"] {border-left: 4px solid #2a78d6; padding: .1rem 0 .1rem 1rem; margin-bottom: .6rem;}
+[class*="st-key-focus_"] [data-testid="stMetricValue"] {font-size: 2.3rem; font-weight: 700;}
+</style>
+"""
+
+
+def focus(name: str, why: str):
+    """A keyed container that marks one metric per tab as the number to watch."""
+    box = st.container(key=f"focus_{name}")
+    box.markdown(f'<div class="cg-eyebrow">Number to watch · {why}</div>', unsafe_allow_html=True)
+    return box
+
+
+def render_hero(box, slope: float, k_growth: float, gamma_growth: float, horizon: int):
+    growth = cg.hazard_growth(slope)
+    if slope > 0.005:
+        verdict = "▲ Consequential capability is outrunning control"
+    elif slope < -0.005:
+        verdict = "▼ Control is catching up"
+    else:
+        verdict = "■ Capability and control are in balance"
+    box.markdown(
+        f"""<div class="cg-hero">
+<div><div class="cg-eyebrow">The number to watch · hazard trend</div>
+<div class="cg-big">{growth:+.0%} <small>per year</small></div>
+<div class="cg-verdict">{verdict}</div></div>
+<div class="cg-side">Consequence side <b>K {k_growth:+.0%}</b> / yr &nbsp;versus&nbsp; control side <b>Γ {gamma_growth:+.0%}</b> / yr, over {horizon} years from 2026.
+<div class="cg-note">This is a <i>trend</i>: how fast the hazard is changing relative to 2026. It is not a probability and not a forecast.
+It is the one quantity in the model that does not depend on the unknown λ₀. Set the yearly trends in the <i>Control Gap Index</i> tab.</div></div>
+</div>""",
+        unsafe_allow_html=True,
+    )
+
+
 def lesson(what: str, tries: list[str], section: str):
     """The explainer at the top of each tab."""
     left, right = st.columns([3, 2])
@@ -201,10 +260,14 @@ s = scenario(p)
 if st.session_state.intro_open:
     intro()
 
-st.title("ControlGap")
-st.markdown("##### When does AI capability become *consequential power*?  ·  The AI Drake Equation, as code")
+dark = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
+st.markdown(CSS.replace("__BG__", "#0e1117" if dark else "#ffffff"), unsafe_allow_html=True)
+st.markdown('<div class="cg-title"><h1>ControlGap</h1><span>When does AI capability become <i>consequential power</i>? · The AI Drake Equation, as code</span></div>', unsafe_allow_html=True)
+hero = st.container()  # filled once the trend has been computed, further down
 
-cols = st.columns(4)
+blocks = st.container(key="blocks")
+blocks.caption("**Building blocks of the hazard.** Watch them move as you change the sidebar. None of them is the answer on its own.")
+cols = blocks.columns(4)
 cols[0].metric("Consequence: index term", f"{float(s.indices):.4f}", help="C · A · O · X · M after gates and coupling")
 cols[1].metric("Residual vulnerability V", f"{float(s.V):.3f}", help=f"Chance an event gets past every layer. Floor: V ≥ ρ = {p['rho']:.2f}")
 cols[2].metric("Irreversibility p_I", f"{float(s.p_I):.3f}", help="Chance an event that got through escalates before we recover")
@@ -232,8 +295,8 @@ faster than we can **detect, stop, contain and recover**. For a catastrophe, eve
         r"\lambda \;=\; \lambda_0 \times "
         + r" \times ".join(rf"\underbrace{{{float(eff[k]):.2f}}}_{{{k}}}" for k in "CAOXM")
         + rf" \times \underbrace{{{float(s.V):.3f}}}_{{V}} \times \underbrace{{{float(s.p_I):.2f}}}_{{p_I}}"
-        + rf" \;=\; \lambda_0 \times {float(s.factor):.5f}"
     )
+    left.latex(rf"\lambda \;=\; \lambda_0 \times {float(s.factor):.5f}")
     left.markdown(
         """
 The first five terms are the **consequence side**, the last two are the **control side**, and **λ₀** is the
@@ -287,7 +350,7 @@ with tab_p:
     left, right = st.columns([1, 3])
     lam0 = left.select_slider("Baseline rate λ₀ (events / yr)", options=[0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100], value=0.1)
     T = left.slider("Horizon T (years)", 1, 50, 10)
-    left.metric(f"P(catastrophe within {T} yr)", f"{float(s.probability(lam0, T)):.2%}")
+    focus("p", "only as good as your guess of λ₀").metric(f"P(catastrophe within {T} yr)", f"{float(s.probability(lam0, T)):.2%}")
     lo, hi = s.probability([0.01, 10], T)
     left.info(f"The same inputs give **{lo:.2%}** at λ₀ = 0.01 and **{hi:.1%}** at λ₀ = 10.")
 
@@ -324,6 +387,9 @@ with tab_def:
     here = alt.Chart(you).mark_point(size=160, filled=True, color=S3, opacity=1).encode(x=x, y=y, tooltip=[alt.Tooltip("V:Q", title="Your V", format=".4f")])
     left.altair_chart(line(floor, x, y, colour, tip) + here, width="stretch")
     left.caption("Green dot: your current V, plotted at the average effectiveness of your three layers.")
+    with right:
+        focus("v", "how much gets through, and how close it is to its floor").metric(
+            "V against its floor ρ", f"{float(s.V):.3f}", f"floor {rho_now:.2f} is {rho_now / float(s.V):.0%} of V", delta_color="off")
 
     with right.container(border=True):
         st.markdown("**Score a near-miss**")
@@ -352,6 +418,8 @@ with tab_levers:
     changes |= {"Common-mode ρ −10%": {"rho": p["rho"] * 0.9}, "Recovery time −10%": {"tau": p["tau"] * 0.9}, "Escalation rate −10%": {"r_esc": p["r_esc"] * 0.9}}
     rows = [{"Lever": k, "Hazard reduction, %": (1 - rate(scenario(p, **v)) / rate(s)) * 100, "Side": "consequence" if i < 5 else "control"}
             for i, (k, v) in enumerate(changes.items())]  # fmt: skip
+    best = max(rows, key=lambda r: r["Hazard reduction, %"])
+    focus("lever", "the lever where a 10% improvement buys most").metric("Best lever", f"−{best['Hazard reduction, %']:.1f}% hazard", best["Lever"], delta_color="off")
     bars = alt.Chart(pd.DataFrame(rows)).mark_bar(cornerRadiusEnd=4, height=16).encode(
         x=alt.X("Hazard reduction, %:Q"), y=alt.Y("Lever:N", sort="-x", title=None, axis=alt.Axis(labelLimit=260)),
         color=alt.Color("Side:N", scale=alt.Scale(domain=["consequence", "control"], range=[S2, S1]), legend=alt.Legend(orient="top", title=None)),
@@ -373,7 +441,7 @@ with tab_whatif:
          "Switch scenario in the sidebar. The same lever matters more or less depending on the scenario."],
         "§13 The open-weight question, §14 What levers act on which variables",
     )  # fmt: skip
-    headline = st.container(border=True)  # filled in below, so the result stays in view above the sliders
+    headline = st.container(border=True, key="whatif_head")  # filled in below, so the result stays in view above the sliders
     strengths = {}
     for col, group in zip(st.columns(len(GROUPS)), GROUPS):
         col.markdown(f"**{group}**")
@@ -389,8 +457,10 @@ with tab_whatif:
     solo = pd.DataFrame([{"Driver": k, "Change in hazard, %": (rate(scenario(p, **apply_levers(flat, {k: v}))) / rate(s) - 1) * 100} for k, v in active.items()])
     open_only = {k: v for k, v in active.items() if k.startswith("Open weights")}
     with headline:
-        h = st.columns(4)
-        h[0].metric("Hazard changes by", f"×{ratio:.2f}", f"{ratio - 1:+.0%}", delta_color="inverse")
+        h = st.columns([1.4, 1, 1, 1])
+        with h[0]:
+            h0 = focus("whatif", "net effect")
+        h0.metric("Hazard changes by", f"×{ratio:.2f}", f"{ratio - 1:+.0%}", delta_color="inverse")
         h[1].metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}", help="The log of the hazard ratio. Independent of λ₀.")
         if open_only:
             net = rate(scenario(p, **apply_levers(flat, open_only))) / rate(s)
@@ -450,15 +520,13 @@ with tab_cgi:
     total = sum(parts.values())
     slope = cg.cgi_slope(t, total)
 
-    c.metric("CGI slope per year", f"{slope:+.3f}")
-    c.metric("Implied hazard growth", f"{cg.hazard_growth(slope):+.0%} / yr")
     K, Gamma = sum(parts[k] for k in ("nu", "C", "A", "O", "X", "M")), -(parts["V"] + parts["p_I"])
-    c.metric("Consequential capability K", f"{np.expm1(K[-1] / horizon):+.0%} / yr")
-    c.metric("Control & resilience Γ", f"{np.expm1(Gamma[-1] / horizon):+.0%} / yr")
-    if slope > 0.005:
-        c.error("Consequential capability is outrunning control.")
-    elif slope < -0.005:
-        c.success("Control is catching up.")
+    k_growth, gamma_growth = float(np.expm1(K[-1] / horizon)), float(np.expm1(Gamma[-1] / horizon))
+    render_hero(hero, slope, k_growth, gamma_growth, horizon)
+    with c:
+        focus("cgi", "the same number as the banner above").metric("Implied hazard growth", f"{cg.hazard_growth(slope):+.0%} / yr", f"CGI slope {slope:+.3f}", delta_color="off")
+    c.metric("Consequential capability K", f"{k_growth:+.0%} / yr")
+    c.metric("Control & resilience Γ", f"{gamma_growth:+.0%} / yr")
     capped = [k for k in "CAOXM" if series[k][-1] >= 1.0 and growth[k] > 0]
     if capped:
         c.warning(f"{', '.join(capped)} hit the ceiling of 1. After that only ν can still grow.")
@@ -515,6 +583,9 @@ with tab_mc:
         x=alt.X("log10 P:Q", title=f"log₁₀ P(catastrophe within {T_mc} yr)"), y="Density:Q", color=colour,
         tooltip=["Indices", alt.Tooltip("log10 P:Q", format=".2f"), alt.Tooltip("Density:Q", format=".3f")])  # fmt: skip
     b.altair_chart(chart, width="stretch")
+    P_corr = runs[f"correlated (r = {r:g})"][0]
+    with a:
+        focus("mc", "the mean, not the median").metric("Mean probability", f"{P_corr.mean():.2%}", f"median {np.median(P_corr):.2%}, {P_corr.mean() / np.median(P_corr):.1f}× lower", delta_color="off")
 
     table = pd.DataFrame({name: {"Median": f"{np.median(P):.3%}", "Mean": f"{P.mean():.3%}", "5%": f"{np.quantile(P, 0.05):.1e}", "95%": f"{np.quantile(P, 0.95):.1e}"}
                           for name, (P, _) in runs.items()}).T  # fmt: skip
