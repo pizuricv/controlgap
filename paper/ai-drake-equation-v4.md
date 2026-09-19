@@ -192,7 +192,7 @@ V_s = \rho_s + (1-\rho_s)\prod_\ell \big(1 - e_{\ell,s}\big)
 }
 $$
 
-This is in the spirit of the beta-factor model (Fleming, 1975), but it is not the same.
+This is a binomial-failure-rate, or Marshall–Olkin, shock model (Vesely, 1977): one shock defeats every layer at once. It is in the spirit of the beta-factor model (Fleming, 1975), but it is not the same.
 
 - **Fleming's model** splits each component's failure probability into independent and common-cause parts. System failure therefore goes to zero as components improve.
 - **Our form** has a floor, $V_s \geq \rho_s$, whatever the quality of the individual layers.
@@ -437,8 +437,16 @@ The second: **precursors must be observed.** A reactor does not hide its near-mi
 | Propensity $M$ | Autonomous: rates of scheming, sandbagging and oversight subversion in evaluations. Misuse: abuse rates per user; threat intelligence |
 | Defence layers $e_\ell$ | Detection, intervention and containment rates in red-team exercises; incident data |
 | Common-mode $\rho$ | Fraction of successful bypasses that defeat several layers at once |
-| Recovery $\tau_{\text{rec}}$ | Time to detect, isolate and restore after AI-involved incidents |
-| Escalation $r_{\text{esc}}$ | Speed of propagation in incidents and exercises |
+| Recovery $\tau_{\text{rec}}$ | Total incident-time at risk divided by the number of incidents recovered — **not** the mean time to restore among them (see below) |
+| Escalation $r_{\text{esc}}$ | Total incident-time at risk divided by the number that escaped recovery |
+
+**A trap in the recovery clock.** The two clocks of Section 6.3 compete, so an incident log records $\min(T_{\text{esc}}, T_{\text{rec}})$, not $T_{\text{rec}}$. For exponential clocks that observed duration has mean $1/(r_{\text{esc}} + r_{\text{rec}})$ whichever clock won. Taking the average time to restore among recovered incidents and using it as $\tau_{\text{rec}}$ therefore estimates $r_{\text{esc}} + r_{\text{rec}}$ in place of $r_{\text{rec}}$, giving
+
+$$
+\hat{p}_I = \frac{r_{\text{esc}}}{2 r_{\text{esc}} + r_{\text{rec}}} \;<\; p_I .
+$$
+
+At the values of Section 12, where the clocks are equally fast, the true $p_I$ is 0.5 and the naive estimate is 0.33 — a third too low, and biased towards believing events are more recoverable than they are. The correct estimator divides each event count by the **total** time at risk across both outcomes. Note what this implies: $\hat{p}_I$ is then simply the fraction of incidents that escaped recovery. The exponential race earns its keep when $r_{\text{esc}}$ and $\tau_{\text{rec}}$ are wanted separately, not for $p_I$ alone.
 
 ## 10. Uncertainty, correlation and the multiple-stage fallacy
 
@@ -451,11 +459,11 @@ $$
 
 So the simulation must average *probabilities* across draws, not hazards.
 
-Three disciplines guard against the known bias of conjunctive models.
+Three disciplines guard against the known bias of conjunctive models. The first two are partial; only the third addresses the fallacy directly.
 
-1. **Model correlations explicitly.** High capability makes broad access, agency and exposure more likely. It also weakens defences (Section 6.2). Sample the indices jointly, for example with a Gaussian copula, not independently.
+1. **Model correlated uncertainty explicitly.** Sample the indices jointly, for example with a Gaussian copula, not independently. Be precise about what this does and does not do. A copula preserves the marginals, so it cannot correct a downward-biased central estimate, which is what the multiple-stage fallacy actually names. What it does is widen the upper tail. The causal dependence of Section 6.7, where capability *makes* access and agency grow, is a third thing again, and a copula does not capture it either.
 2. **Elicit conditionally.** Ask for $P(O \mid C, A)$, not $P(O)$. Use structured expert-elicitation protocols with calibration questions, such as Cooke's classical model.
-3. **Check the whole chain.** Compare the product of stages with a direct holistic estimate. A large discrepancy is a signal to revisit the stages, not to average the two.
+3. **Check the whole chain.** Compare the product of stages with a direct holistic estimate, for instance against the elicited distributions of the Existential Risk Persuasion Tournament or Carlsmith's credences. A large discrepancy is a signal to revisit the stages, not to average the two. **This comparison has not been carried out here**, and until it is, this paper has cited the multiple-stage fallacy without having tested itself against it.
 
 Figure 4 illustrates the first two points with deliberately uncertain, illustrative inputs:
 
@@ -471,7 +479,9 @@ Results over ten years:
 - **Median:** about 0.2%.
 - **90% interval:** roughly $10^{-4}$ to $5 \times 10^{-2}$, i.e. about 2.5 orders of magnitude.
 - **Mean:** about 1%, five times the median, because the distribution is heavily skewed.
-- **Effect of correlation:** correlating the four indices (copula correlation 0.6) leaves the median almost unchanged. It raises the mean by about 30% (0.94% → 1.21%) and fattens the upper tail. That is the multiple-stage fallacy in one picture: assuming independence mainly hides the tail.
+- **Effect of correlation:** correlating the four indices (copula correlation 0.6) leaves the median almost unchanged. It raises the mean by about 30% (0.94% → 1.21%) and fattens the upper tail. Assuming independent *uncertainty* therefore understates the upper tail and barely moves the centre.
+
+This needs stating carefully, because it is easy to over-claim. It is **not** a demonstration of the multiple-stage fallacy. That fallacy is a biased central estimate produced by shading each stage down, and no copula can correct it, because the marginals are preserved by construction. Discipline 3 below is the only one of the three that would detect the fallacy, and this paper does not yet carry it out.
 
 **How much of this is assumed.** Most of the width is an input, not a finding.
 
@@ -613,6 +623,7 @@ A per-scenario dashboard would report the indices behind $K_s$ and $\Gamma_s$ as
 - **Precursor calibration assumes shared elasticities** between near-misses and catastrophes (Section 9.1).
 - **Precursors can be strategically censored.** A deceptive system suppresses its own near-misses, so precursor-based calibration is weakest in the scenario where it is needed most (Section 9.1).
 - **The framework is more mature for misuse than for loss of control.** Propensity is hard to measure, the coupling coefficients are unknown, and precursors may be censored. All three problems fall on the autonomous branch.
+- **Redefining an index breaks the comparison.** The Control Gap Index is invariant to rescaling an index but not to shifting its zero (Section 7). Capability is the *share* of a required capability set, so adding a newly recognised capability to that set is a shift, not a rescale — and evaluation suites are revised yearly. In practice the index moves whenever the instrument changes, so a reported series must state which definition each year used.
 - **The indices depend on immature evaluation suites.** Those suites are also vulnerable to gaming, and the capability index is blind to capability beyond sufficiency.
 
 The framework should be read as a research programme and a monitoring architecture, not as a prediction engine.
@@ -662,6 +673,7 @@ That is the variable worth watching.
 - Drake, F. D. (1965). The radio search for intelligent extraterrestrial life. In G. Mamikunian & M. H. Briggs (eds.), *Current Aspects of Exobiology*, Pergamon.
 - European Union (2024). [Regulation (EU) 2024/1689 (AI Act)](https://eur-lex.europa.eu/eli/reg/2024/1689/oj), Articles 51, 52 and 55.
 - Fleming, K. N. (1975). *A Reliability Model for Common Mode Failures in Redundant Safety Systems.* Report GA-A13284, General Atomic Company.
+- Vesely, W. E. (1977). Estimating common-cause failure probabilities in reliability and risk analyses: Marshall–Olkin specialisations. In *Nuclear Systems Reliability Engineering and Risk Assessment*, SIAM.
 - Hendrycks, D., Mazeika, M. & Woodside, T. (2023). [An overview of catastrophic AI risks.](https://arxiv.org/abs/2306.12001) arXiv:2306.12001.
 - Kaplan, S. & Garrick, B. J. (1981). [On the quantitative definition of risk.](https://doi.org/10.1111/j.1539-6924.1981.tb01350.x) *Risk Analysis*, 1(1), 11–27.
 - Karger, E. et al. (2023). [*Forecasting Existential Risk: Evidence from a Long-Run Forecasting Tournament.*](https://forecastingresearch.org/research/existential-risk-persuasion-tournament) Forecasting Research Institute.

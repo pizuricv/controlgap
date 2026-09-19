@@ -103,6 +103,24 @@ def conditional_catastrophe_probability(passed: ArrayLike, remaining: ArrayLike,
 
     Passing layers is evidence of a common-cause bypass, so the answer is
     V(all layers) / V(passed layers) * p_I, not simply prod(1 - e_remaining) * p_I.
+
+    The identity is exact under the shock mixture, but it carries four
+    assumptions worth stating:
+
+    1. the common cause is all-or-nothing across every layer. If the bypass is
+       known to be specific to one layer -- the usual diagnostic situation --
+       the update goes the other way, and this returns too high a number;
+    2. ``p_I`` does not depend on how the layers were defeated. A shock that
+       takes all of them at once plausibly escalates faster, so this is
+       conservative by an unstated amount;
+    3. the event genuinely challenged every layer counted as passed;
+    4. the score ignores that a near-miss is, by construction, an event
+       something later caught. That is the intended counterfactual, but it is
+       a modelling choice rather than an identity.
+
+    It is also not what the NRC computes. An ASP score re-runs the plant model
+    with the observed component states fixed; this installs a generic
+    shared-cause prior instead.
     """
     passed = np.asarray(passed, dtype=float)
     everything = np.concatenate([passed, np.asarray(remaining, dtype=float)])

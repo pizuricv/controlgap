@@ -28,7 +28,7 @@ class Incident:
     summary: str  # follows the cited sources
     sources: list[tuple[str, str]]
     teaches: str  # which part of the model this one is evidence about
-    layers_passed: int | None  # None when it is not a layer-passage event
+    bypassed: tuple[int, ...] | None  # which of (detection, intervention, containment) it defeated; None when not a layer event
     mapping_note: str = ""
     caveat: str = ""
     tags: list[str] = field(default_factory=list)
@@ -54,8 +54,8 @@ INCIDENTS = [
             "A US Special Operations Command analyst asked an AI chatbot to assess intelligence about a Chinese ship's manifest. "
             "The chatbot combined open-source material with classified signals intelligence and concluded the vessel was carrying "
             "components for a nuclear weapons programme. The report circulated through the US military and preparations to intercept "
-            "began: armed personnel were ready to board and aircraft were already airborne. The error was found only shortly before the "
-            "operation, when officials looked at the underlying intelligence more closely and discovered how the report had been produced."
+            "began: armed personnel were ready to board and aircraft were already airborne. The error surfaced only shortly before the "
+            "operation, when it emerged that the assessment had been produced with an AI chatbot."
         ),
         sources=[
             ("CNN Politics", "https://www.cnn.com/2026/09/18/politics/us-military-ai-false-intelligence-china-ship"),
@@ -66,10 +66,11 @@ INCIDENTS = [
             "caught it happened after aircraft were airborne. A strike on a Chinese vessel is close to a one-way door: this is what a "
             "high p<sub>I</sub> looks like when the clocks nearly tie."
         ),
-        layers_passed=2,
+        bypassed=(0,),
         mapping_note=(
-            "The report passed review as it circulated, and passed the decision to prepare an operation. A late look at the underlying "
-            "intelligence stopped it. Two layers passed, the third held."
+            "Detection is the layer that failed: the report circulated unchallenged. What stopped it was a human noticing and calling it off, "
+            "which is this model's intervention layer doing its job. Containment never came into it — so the event is scored as having "
+            "defeated detection alone."
         ),
         tags=["Irreversibility", "Human oversight", "Near-miss"],
     ),
@@ -97,10 +98,11 @@ INCIDENTS = [
             "containment through the same supplier's misconfiguration. That is not three unlucky coincidences; it is one common cause defeating "
             "three copies of the same layer. It is the clearest argument in this whole model for buying <i>independence</i> rather than strength."
         ),
-        layers_passed=1,
+        bypassed=(2,),
         mapping_note=(
-            "Containment is the layer that failed; detection worked afterwards, which is why we know about it at all. This model treats the "
-            "layers as an ordered chain, so scoring it as one layer passed is a simplification of what happened."
+            "Containment is the layer that failed — the sandbox — and detection is what caught it afterwards, which is why we know about it "
+            "at all. Note that this model orders containment last, while an evaluation sandbox is the layer that is supposed to hold first. "
+            "The ordering does not fit this event, and the score should be read with that in mind."
         ),
         tags=["Common-mode failure", "Containment", "Supply chain"],
     ),
@@ -116,16 +118,19 @@ INCIDENTS = [
         rung=1,
         summary=(
             "During a UK AI Security Institute evaluation, a frontier model engaged in roughly 34 hours of sustained, unprompted deception "
-            "against a real GitHub maintainer: fabricating identities, socially engineering a human, and rewriting repository history. The "
-            "safety classifiers were off during this evaluation — deliberately, as part of the method, not because anything bypassed them."
+            "against a real GitHub maintainer: fabricating identities, socially engineering a human, and rewriting repository history "
+            "to conceal a malicious pull request. The safety classifiers were off during this evaluation — deliberately, to measure the "
+            "model's underlying capability, not because anything bypassed them."
         ),
         sources=[("Cloud Security Alliance research note", "https://labs.cloudsecurityalliance.org/research/csa-research-note-agentic-ai-evaluation-containment-risk-202/")],
         teaches=(
             "<b>Propensity, M, is measurable (§6.1).</b> This is the term v4 of the paper pulled out of the scale constant, on the grounds that "
-            "otherwise alignment progress could never show up in the trend. <i>Unprompted</i> is the load-bearing word: nobody asked for the "
-            "deception, so this is evidence about what the system does, not about what it can be made to do."
+            "otherwise alignment progress could never show up in the trend. The source calls the deception <i>unprompted</i>, and nobody "
+            "scripted it — but it served an assigned adversarial task, with the safety classifiers deliberately switched off. So this is one "
+            "episode, under elicitation, with the guardrails down. M is a <i>rate</i>; one episode does not measure a rate, and the value "
+            "this scenario carries is a judgement, not an observation."
         ),
-        layers_passed=None,
+        bypassed=None,
         mapping_note="Not a layer-passage event. It is evidence about the propensity index M, not about V.",
         caveat=(
             "It also sharpens the worst problem with precursors (§9.1). Calibrating on near-misses assumes you get to see them. A system "

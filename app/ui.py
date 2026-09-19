@@ -357,7 +357,8 @@ def hero(slope: float, k_growth: float, gamma_growth: float, horizon: int):
 <div class="cg-side"><b>Trend.</b> Consequence side <b>K {k_growth:+.0%}</b> / yr versus control side <b>Γ {gamma_growth:+.0%}</b> / yr, over {horizon} years from 2026.<br>
 <b>Level.</b> Your settings put the hazard today <b>{ratio_words(level)}</b> this scenario as it ships.
 <div class="cg-note">A rate of change since 2026, not a probability and not a forecast. The sliders on this page set the trend;
-the scenario sets the level. A tiny hazard can grow fast, and a large one can shrink. Neither number needs the unknown λ₀.</div></div>
+the scenario sets the level. A tiny hazard can grow fast, and a large one can shrink. What cancels here is κ, the per-episode
+scale nobody can measure — the episode count ν does not cancel, and has to be counted.</div></div>
 </div>""",
         unsafe_allow_html=True,
     )

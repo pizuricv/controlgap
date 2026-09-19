@@ -125,7 +125,7 @@ def start():
 something that can be reached, can act, can touch things that matter, and that someone or something would actually
 attempt — faster than we can detect, stop, contain and recover.
 
-For a catastrophe, **every one of these has to line up at once**:
+For a catastrophe, **everything on the left has to be present and everything on the right has to fail**, at once:
 """
     )
     left.markdown(
@@ -143,7 +143,8 @@ For a catastrophe, **every one of these has to line up at once**:
         st.markdown("**What you will not find here**")
         st.markdown(
             "A probability of doom. The honest result in the paper is that **no such number is identifiable yet** — "
-            "the same inputs give anything from 0.04% to 33%.\n\nWhat *is* measurable is the **trend**: whether "
+            "change nothing but the one rate nobody has ever measured, and the answer moves from 0.04% to 33%."
+            "\n\nWhat *is* measurable is the **trend**: whether "
             "consequential capability is pulling ahead of control. Eleven short chapters get you there."
         )
         st.caption("About fifteen minutes. Nothing you click can break it.")
@@ -377,8 +378,9 @@ def layers():
 
     takeaway(
         f"<b>Perfect layers would still leave ρ.</b> Right now the shared blind spot is <b>{rho_now / float(s.V):.0%}</b> of everything that gets "
-        "through. Past that point, making any single layer stronger buys almost nothing; making the layers <i>independent</i> is the "
-        "only thing that moves V. Separate the monitoring from the monitored system, and diversify.",
+        "through. Strengthening the layers still works — taking all three from 0.6 to 0.9 nearly halves V — but every further point buys "
+        "less, and below about twice ρ it buys almost nothing. Past that, independence is the lever left: separate the monitoring from "
+        "the monitored system, and diversify.",
         warn=rho_now / float(s.V) > 0.5,
     )
     st.markdown("#### Score a near-miss, the way nuclear safety does")
@@ -481,17 +483,19 @@ def precursors_chapter():
     s = scenario()
     rho_now, layers_now = float(s.effective_rho), [float(v) for v in s.effective_layers]
     with right:
-        if incident.layers_passed is None:
+        if incident.bypassed is None:
             focus("precursor").metric("What this one measures", "Propensity M", f"you have it at {float(s.effective['M']):.2f}", delta_color="off", delta_arrow="off")
         else:
-            n = incident.layers_passed
-            score = cg_precursors.conditional_catastrophe_probability(layers_now[:n], layers_now[n:], rho_now, float(s.p_I))
-            naive = float(np.prod([1 - v for v in layers_now[n:]]) * s.p_I)
+            beaten = [layers_now[i] for i in incident.bypassed]
+            held = [v for i, v in enumerate(layers_now) if i not in incident.bypassed]
+            score = cg_precursors.conditional_catastrophe_probability(beaten, held, rho_now, float(s.p_I))
+            naive = float(np.prod([1 - v for v in held]) * s.p_I)
             focus("precursor").metric(
                 "Chance it would have completed", f"{score:.1%}",
                 f"naive estimate {naive:.1%}", delta_color="off", delta_arrow="off",
                 help="Scored against your current layer effectivenesses, ρ and p_I. Getting past layers is evidence that a shared weakness is in play, so the honest score beats the naive one.")  # fmt: skip
-            st.caption(f"Passed **{n}** of 3 layers before something stopped it.")
+            names = ", ".join(LAYERS[i].lower() for i in incident.bypassed)
+            st.caption(f"It defeated **{names}**; the others held.")
         st.info(incident.mapping_note, icon=":material/rule:")
         if st.session_state.preset == incident.scenario_name:
             st.success("Your scenario is set from this event.", icon=":material/check:")
@@ -649,7 +653,7 @@ def whatif():
         st.caption("Move a driver above. The index shift, the open-weights effect and the term-by-term table appear here.")
     else:
         h = support.columns(3)
-        h[0].metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}", help="The log of the hazard ratio. It needs no λ₀.")
+        h[0].metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}", help="The log of the hazard ratio. It needs no κ, the per-episode scale — though it still needs the episode count ν.")
         if open_only:
             net = rate(scenario(**apply_levers(flat(), open_only))) / rate(s)
             h[1].metric("Open weights, on net", f"{net - 1:+.0%}", help="Proliferation and the defensive ecosystem, together.")
@@ -685,8 +689,9 @@ def gap():
     opener(
         "Chapter 9 of 11 · Measure",
         "The one number that survives",
-        "Levels need a λ₀ nobody has. Ratios do not. Compare this year's hazard with a reference year and the unknown scale "
-        "cancels exactly — which leaves a question you can actually answer: is consequential capability pulling ahead of control?",
+        "Levels need a per-episode scale nobody has. Ratios do not. Compare this year's hazard with a reference year and κ cancels "
+        "exactly — provided it has not itself changed. What is left is a question you can answer: is consequential capability pulling "
+        "ahead of control?",
         "§7 The Control Gap Index, §15 A dashboard",
     )
     p = P()
@@ -766,6 +771,12 @@ def uncertainty():
     )
     p = P()
     s = scenario()
+    if p["g"] > 0:
+        st.warning(
+            f"Your scenario has capability coupling at {p['g']:.2f}, and this simulation does not model it: the indices, the layers and "
+            "the recovery clock are drawn independently of one another. Treat what follows as the uncoupled case.",
+            icon=":material/warning:",
+        )
     a, b = st.columns([1, 3], gap="large")
     r = a.slider("Correlation between the indices", 0.0, 0.9, 0.6, 0.05, help="High capability tends to come with broad access, agency and exposure. Zero pretends they are unrelated.")
     median = a.select_slider("Median λ₀", options=[0.001, 0.01, 0.1, 1, 10], value=0.1)
@@ -787,9 +798,9 @@ def uncertainty():
     cols = b.columns(3)
     with cols[0]:
         focus("mc").metric("Mean probability", f"{P_corr.mean():.2%}", f"median {np.median(P_corr):.2%}", delta_color="off", delta_arrow="off",
-                           help="Decide on the mean, not the median: the distribution is skewed, so the typical draw understates the expected risk.")  # fmt: skip
+                           help="The mean sits far above the median because the distribution is skewed. Which one you act on is a decision to make deliberately, not a fact about the draws.")  # fmt: skip
     cols[1].metric("90% interval", f"{np.quantile(P_corr, 0.05):.1e} – {np.quantile(P_corr, 0.95):.1e}")
-    spread = runs["if the indices were independent"][1]
+    spread = runs[f"correlated (r = {r:g})"][1]
     cols[2].metric("Orders of magnitude", f"{spread['all']:.1f}", f"λ₀ alone gives {spread['lambda0_only']:.1f}", delta_color="off", delta_arrow="off")
 
     takeaway(
@@ -804,7 +815,7 @@ def uncertainty():
     next_chapter("Chapter 11 · Your turn", go("challenge"))
 
 
-def _end_card(cut: float):
+def _end_card(cut: float, spent: float = 0.0):
     """What the reader earned, in a form they can paste to a colleague."""
     from ui import CHAPTER_COUNT, share_link
 
@@ -816,7 +827,7 @@ def _end_card(cut: float):
         f"Hazard trend {cg.hazard_growth(slope):+.0%}/yr (consequence K {k_growth:+.0%}, control Γ {gamma_growth:+.0%}).",
         f"Residual vulnerability V = {num(s.V, 3)}, and it cannot go below ρ = {float(s.effective_rho):.2f}.",
         f"Of every 100 events that get through, {float(s.p_I) * 100:.0f} are not recoverable.",
-        f"Best I could do with {BUDGET} points of effort: cut the hazard by {cut:.0%}.",
+        f"Spent {spent:.0f} of {BUDGET} points of effort: held the hazard down by {cut:.0%}.",
         "The level is not identifiable. The trend is. " + share_link(),
     ]
     with st.container(border=True):
@@ -1035,7 +1046,7 @@ def _game_result(game: dict, world: dict, do_nothing: float, yours: float, held:
             "card and see which of your choices survive. This is what robustness means here, and it is why the paper refuses to "
             "answer the open-weight question with a number."
         )
-    _end_card(held)
+    _end_card(held, sum(v * COST[k] for r in game['spent'].values() for k, v in r.items()))
 
 
 def _greedy_plan(world: dict, step: float = 0.2):

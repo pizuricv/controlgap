@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from controlgap import precursors as pc
@@ -52,3 +53,15 @@ def test_fit_elasticities_recovers_theta():
     assert fit.log_scale == pytest.approx(np.log(1e-3), abs=0.1)
     with pytest.raises(ValueError):
         pc.fit_elasticities(counts, nu, {"A": np.full(n, 0.5)})
+
+
+def test_scoring_a_near_miss_by_which_layers_were_defeated():
+    """The layers a precursor defeated need not be a prefix of the chain."""
+    e, rho, p_I = [0.70, 0.50, 0.25], 0.35, 0.5
+    detection_only = pc.conditional_catastrophe_probability([e[0]], e[1:], rho, p_I)
+    containment_only = pc.conditional_catastrophe_probability([e[2]], e[:2], rho, p_I)
+    assert detection_only != containment_only
+    # whichever layers held, the score exceeds the naive product of their miss rates
+    for beaten, held in (([e[0]], e[1:]), ([e[2]], e[:2])):
+        naive = float(np.prod([1 - v for v in held]) * p_I)
+        assert pc.conditional_catastrophe_probability(beaten, held, rho, p_I) > naive
