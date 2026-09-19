@@ -1,4 +1,4 @@
 # For one-click hosting (e.g. Streamlit Community Cloud): installs the package plus the app dependencies.
 .
-streamlit>=1.40
+streamlit>=1.64
 altair>=5
