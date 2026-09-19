@@ -36,7 +36,7 @@ GROWTH_KEYS = ("gnu", "gC", "gA", "gO", "gX", "gM", "de0", "de1", "de2", "drho",
 PRESETS = {
     "The paper's example": dict(
         icon="📄", short="The paper's example", tagline="The numbers used throughout the paper.",
-        about="Propensity is at its worst case and capability is not coupled to anything else. Start here if you want the figures in §12 to match.",
+        about="The trigger is at its worst case and capability is not coupled to anything else. Start here if you want the figures in §12 to match.",
         C=0.20, A=0.70, O=0.50, X=0.60, M=1.00, e0=0.60, e1=0.50, e2=0.50, rho=0.10, r_esc=1.0, tau=1.0, g=0.0,
         gnu=10, gC=5, gA=2, gO=4, gX=3, gM=0, de0=1.5, de1=1.0, de2=0.0, drho=0.5, dtau=-3, horizon=10),
     "Autonomous cyber operations": dict(
@@ -51,8 +51,8 @@ PRESETS = {
         gnu=8, gC=6, gA=4, gO=1, gX=2, gM=0, de0=1.0, de1=1.0, de2=0.5, drho=0.0, dtau=-2, horizon=10),
     "Cascading infrastructure failure": dict(
         icon="⚡", short="Cascading infra failure", tagline="Nobody has to intend it.",
-        about="An accident, so propensity sits at 1. Tightly coupled systems share their weaknesses, so the common-mode rate is high and escalation is fast.",
-        C=0.60, A=0.90, O=0.80, X=0.50, M=1.00, e0=0.50, e1=0.40, e2=0.60, rho=0.25, r_esc=4.0, tau=2.0, g=0.0,
+        about="Nobody intends it, but the trigger is not therefore 1: it is the chance the initiating fault occurs in a qualifying episode. Tightly coupled systems share their weaknesses, so the common-mode rate is high and escalation is fast.",
+        C=0.60, A=0.90, O=0.80, X=0.50, M=0.40, e0=0.50, e1=0.40, e2=0.60, rho=0.25, r_esc=4.0, tau=2.0, g=0.0,
         gnu=14, gC=5, gA=2, gO=6, gX=4, gM=0, de0=1.0, de1=0.5, de2=0.0, drho=1.0, dtau=-2, horizon=10),
 }  # fmt: skip
 
@@ -444,7 +444,7 @@ INCIDENT_BODY = """**The event**
 
 **Which part of the model is it evidence about?**
 
-<!-- e.g. the common-mode rate, propensity, the recovery clock -->
+<!-- e.g. the common-mode rate, the trigger, the recovery clock -->
 """
 
 

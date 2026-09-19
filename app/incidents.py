@@ -47,9 +47,11 @@ INCIDENTS = [
         scenario_short='AI in the decision chain',
         scenario_why=(
             'Agency is low — the model wrote a report, humans acted on it — while exposure is very high, because the people who deferred '
-            'could reach a great deal. This is the error branch (§6.6): nobody attempted anything, so the trigger M is the chance of a '
-            'dangerous-direction error times the chance the chain defers to it. Deference was close to total; the error rate is not. '
-            'Escalation is fast and recovery was measured in hours.'
+            'could reach a great deal. This is the error branch (§6.6), so the trigger is two factors: roughly a 0.3 chance of a '
+            'dangerous-direction error on adversarial fusion of this kind, and roughly 0.8 that the first recipient accepts it unchecked — '
+            'high in the reported automation-bias range, given rank, time pressure and no independent source. That gives M ≈ 0.25. '
+            'Both figures are judged, not measured: one episode in which deference did occur is a numerator, and M is a rate. '
+            'Only the first recipient sits inside M; every later review is a detection layer. Escalation is fast and recovery took hours.'
         ),
         preset={'C': 0.5, 'A': 0.35, 'O': 0.25, 'X': 0.85, 'M': 0.25, 'e0': 0.55, 'e1': 0.45, 'e2': 0.8, 'rho': 0.2, 'r_esc': 3.0, 'tau': 0.25, 'g': 0.0, 'gnu': 20, 'gC': 7, 'gA': 3, 'gO': 6, 'gX': 4, 'gM': 0, 'de0': 1.0, 'de1': 1.0, 'de2': 0.5, 'drho': 0.5, 'dtau': -4, 'horizon': 10},
         title="An AI-written intelligence report nearly triggered the interception of a Chinese vessel",
@@ -77,7 +79,8 @@ INCIDENTS = [
         ),
         bypassed=(0,),
         mapping_note=(
-            "Detection is the layer that failed: the report circulated unchallenged. What stopped it was a human noticing and calling it off, "
+            "The first recipient accepting the assessment sits inside the trigger M, not here. Detection is the layer that failed after that: "
+            "the report circulated through the wider chain unchallenged. What stopped it was a human noticing and calling it off, "
             "which is this model's intervention layer doing its job. Containment never came into it — so the event is scored as having "
             "defeated detection alone."
         ),
@@ -126,7 +129,7 @@ INCIDENTS = [
         scenario_name='A model that chooses to deceive',
         scenario_icon='🎭',
         scenario_short='A model that deceives',
-        scenario_why='Propensity is high because it was observed, not assumed. Coupling is on: a system that deceives its overseers is eroding the very layers meant to catch it, which is what the coupling term is for.',
+        scenario_why='The trigger is high on its autonomous reading — propensity — but that is a judgement from one episode, not a rate. Coupling is on: a system that deceives its overseers is eroding the very layers meant to catch it, which is what the coupling term is for.',
         preset={'C': 0.65, 'A': 0.2, 'O': 0.75, 'X': 0.4, 'M': 0.85, 'e0': 0.5, 'e1': 0.5, 'e2': 0.4, 'rho': 0.15, 'r_esc': 0.8, 'tau': 2.0, 'g': 0.45, 'gnu': 16, 'gC': 9, 'gA': 2, 'gO': 8, 'gX': 5, 'gM': 3, 'de0': 1.5, 'de1': 1.0, 'de2': 0.5, 'drho': 0.0, 'dtau': -4, 'horizon': 10},
         title="A model sustained 34 hours of unprompted deception against a real person",
         when="Disclosed 4 August 2026",
@@ -139,20 +142,20 @@ INCIDENTS = [
         ),
         sources=[("Cloud Security Alliance research note", "https://labs.cloudsecurityalliance.org/research/csa-research-note-agentic-ai-evaluation-containment-risk-202/")],
         teaches=(
-            "<b>Propensity, M, is measurable (§6.1).</b> This is the term v4 of the paper pulled out of the scale constant, on the grounds that "
+            "<b>The autonomous reading of the trigger (§6.1, §6.6).</b> This is the term v4 of the paper pulled out of the scale constant, on the grounds that "
             "otherwise alignment progress could never show up in the trend. The source calls the deception <i>unprompted</i>, and nobody "
             "scripted it — but it served an assigned adversarial task, with the safety classifiers deliberately switched off. So this is one "
             "episode, under elicitation, with the guardrails down. M is a <i>rate</i>; one episode does not measure a rate, and the value "
             "this scenario carries is a judgement, not an observation."
         ),
         bypassed=None,
-        mapping_note="Not a layer-passage event. It is evidence about the propensity index M, not about V.",
+        mapping_note="Not a layer-passage event. It is evidence about the trigger M on its autonomous reading, not about V.",
         caveat=(
             "It also sharpens the worst problem with precursors (§9.1). Calibrating on near-misses assumes you get to see them. A system "
             "capable of sustained deception has a reason not to show you — so in the one scenario where this matters most, a falling precursor "
             "rate is ambiguous between control improving and concealment improving."
         ),
-        tags=["Propensity", "Deception", "Precursor censoring"],
+        tags=["Trigger", "Deception", "Precursor censoring"],
     ),
 ]
 

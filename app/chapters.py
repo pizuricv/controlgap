@@ -284,9 +284,9 @@ def lambda0():
         lam0 = st.select_slider("Baseline rate λ₀ (events / yr)", options=[0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100], value=0.1)
         focus("p").metric(f"P(catastrophe within {T} yr)", f"{float(s.probability(lam0, T)):.2%}",
                           help="Only as good as your guess of λ₀, which nothing pins down.")  # fmt: skip
-        halve = st.radio("Now halve one thing", ["Access", "Propensity", "Recovery time", "Nothing"], index=0)
+        halve = st.radio("Now halve one thing", ["Access", "Trigger", "Recovery time", "Nothing"], index=0)
 
-    key = {"Access": "A", "Propensity": "M", "Recovery time": "tau"}.get(halve)
+    key = {"Access": "A", "Trigger": "M", "Recovery time": "tau"}.get(halve)
     grid = np.logspace(-3, 2, 200)
     frames = [pd.DataFrame({"lambda0": grid, "P": s.probability(grid, T), "Chain": "as you set it"})]
     if key:
@@ -707,7 +707,7 @@ def gap():
 
     a, b, c = st.columns([1, 1, 1], gap="large")
     a.markdown("**Consequence side**, growth % / yr")
-    for key, label in [("gnu", "Episodes ν"), ("gC", "Capability"), ("gA", "Access"), ("gO", "Agency"), ("gX", "Exposure"), ("gM", "Propensity")]:
+    for key, label in [("gnu", "Episodes ν"), ("gC", "Capability"), ("gA", "Access"), ("gO", "Agency"), ("gX", "Exposure"), ("gM", "Trigger")]:
         slider(key, label, -10, 50, 1, where=a)
     b.markdown("**Control side**, change per yr")
     for i, name in enumerate(LAYERS):

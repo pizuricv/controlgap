@@ -18,7 +18,7 @@ We propose a measurement architecture built on one scenario-specific hazard mode
 
 1. **As a probability.** Catastrophe pathways are treated as competing risks. Each has a rate built from four parts:
    - the number of deployment episodes;
-   - capability, access, agency, exposure and propensity indices;
+   - capability, access, agency, exposure and trigger indices;
    - a residual vulnerability derived from layered, possibly correlated defences;
    - an irreversibility term derived from a race between escalation and recovery.
 2. **As a trend.** The **Control Gap Index** is the log hazard ratio relative to a reference year. In it, the least identifiable parameter cancels exactly. It therefore measures whether consequential capability is growing faster than control, without requiring anyone to know the absolute probability.
@@ -57,7 +57,7 @@ This gives the paper its spine. There are two sides:
    Access      (A)          versus           Containment
    Agency      (O)                           Independence of layers
    Exposure    (X)                           Recovery
-   Propensity  (M)
+   Trigger     (M)
         │                                         │
         ▼                                         ▼
    CONSEQUENTIAL CAPABILITY  K            CONTROL & RESILIENCE  Γ
@@ -81,7 +81,7 @@ None of the individual ingredients is new.
   - it makes the control side an explicit, measurable layer rather than one premise among many.
 - **Drake-style models under uncertainty.** Sandberg, Drexler and Ord (2018) showed that propagating *distributions* through the Drake equation, rather than multiplying point estimates, changes its conclusion qualitatively. Section 10 takes the same lesson.
 - **The multiple-stage fallacy.** Yudkowsky (2016) named a failure mode, illustrated by Silver's (2015) staged estimate of a Trump nomination. Conjunctive chains bias estimates downward when each stage is shaded down independently and correlations between stages are ignored. Any Drake-style model is exposed to this. Section 10 addresses it directly.
-- **Probabilistic risk assessment (PRA).** Nuclear safety has decomposed rare, never-observed catastrophes into event trees and fault trees since the Reactor Safety Study (WASH-1400, 1975). After the Lewis review (1978) and Three Mile Island, the NRC established the Accident Sequence Precursor (ASP) programme in 1979. ASP scores observed precursor events by their *conditional core-damage probability*. Our capability → access → agency → exposure → propensity → control-failure chain is an event tree, and our precursor ladder (Section 9) is a direct analogue of ASP. Kaplan and Garrick (1981) supply the underlying definition of risk as a set of (scenario, likelihood, consequence) triplets.
+- **Probabilistic risk assessment (PRA).** Nuclear safety has decomposed rare, never-observed catastrophes into event trees and fault trees since the Reactor Safety Study (WASH-1400, 1975). After the Lewis review (1978) and Three Mile Island, the NRC established the Accident Sequence Precursor (ASP) programme in 1979. ASP scores observed precursor events by their *conditional core-damage probability*. Our capability → access → agency → exposure → trigger → control-failure chain is an event tree, and our precursor ladder (Section 9) is a direct analogue of ASP. Kaplan and Garrick (1981) supply the underlying definition of risk as a set of (scenario, likelihood, consequence) triplets.
 - **PRA for frontier AI.** Koessler and Schuett (2023) review risk-assessment techniques from safety-critical industries for AGI developers. Wisakanto et al. (2025) adapt PRA to AI systems. Our contribution is complementary: a compact hazard specification and a trend index, rather than a full assessment methodology.
 - **Barrier models.** Bow-tie analysis and Reason's "Swiss cheese" model (1990) describe layered barriers between a hazard and its consequence. Our residual-vulnerability term is a quantitative bow-tie with correlated holes.
 - **Reliability engineering and survival analysis.** We use:
@@ -101,7 +101,7 @@ None of the individual ingredients is new.
 
 **Our contribution** is not a new probability distribution. It is a unified measurement architecture that:
 
-- connects AI capability to consequential real-world agency through access, agency, exposure, propensity and episode volume;
+- connects AI capability to consequential real-world agency through access, agency, exposure, the trigger and episode volume;
 - *derives* residual vulnerability from layered, correlated defences, and irreversibility from a race between escalation and recovery;
 - lets capability act on the other terms, so that the separability of the policy levers becomes a testable assumption, not a built-in one;
 - shows that the Control Gap Index is the identifiable part of the hazard model, namely the log hazard ratio, in which the unknown scale cancels;
@@ -245,7 +245,7 @@ $$
 
 $\kappa_s$ is the per-episode probability of catastrophe at maximal indices with no defences and certain escalation. It is the least identifiable quantity in the model. We write $\lambda_{0,s} = \nu_s \kappa_s$ for the baseline rate.
 
-With propensity an explicit index, $\kappa_s$ no longer hides how likely the agent is to try. That makes the assumption of Section 7, that $\kappa_s$ is constant over time, easier to defend.
+With the trigger an explicit index, $\kappa_s$ no longer hides how likely the chain is to start. That makes the assumption of Section 7, that $\kappa_s$ is constant over time, easier to defend.
 
 ### 6.5 Specification II: thresholds
 
@@ -274,7 +274,7 @@ Whether real risk behaves like Specification I or II is an empirical question. T
 
 *Figure 2. Relative hazard as a function of capability, all else fixed. The power laws (Specification I) and the threshold gate (Specification II) agree at both ends. They disagree about where a marginal gain in capability matters most.*
 
-### 6.6 Two branches
+### 6.6 Three branches
 
 Written per scenario, the structure separates the two pathways that are most often conflated:
 
@@ -285,12 +285,17 @@ Written per scenario, the structure separates the two pathways that are most oft
   - $M$ is the prevalence and intensity of malicious or reckless intent among those with access.
   - Agency $O$ still matters, because an agentic tool does more of the work for the person misusing it.
 - **Consequential error.** Nobody attempts anything. The system is wrong in a dangerous direction and a human acts on the output.
-  - $M$ factorises: $M_s = P(\text{dangerous error}) \times P(\text{the operator defers})$.
+  - $M$ factorises exactly: $M_s = P(\text{dangerous error}) \times P(\text{the first recipient accepts it} \mid \text{it is a dangerous error})$. Written with the conditional this is an identity, not an assumption. Written with a marginal deference rate instead it is a hypothesis, and one bounded in a useful direction: by the Fréchet inequalities the product can understate the true $M$ by at most $1/P_D$, which is under a factor of two for any deference rate above a half, while it can overstate without limit.
+  - **The boundary with $V$ matters.** $M$ stops at the first recipient. Every subsequent review — a second analyst, a duty officer, a sign-off — is a detection layer inside $V$. Without that line the same reviewers are counted twice, once as deference and once as $1 - e_\ell$.
   - Agency $O$ is typically *low* — the system may only have produced text — while exposure $X$ is whatever the deferring human can reach, which is often far more.
 
 Earlier drafts let $M$ *replace* $O$ in the misuse branch. Keeping both, in every branch, gives them the same structure and gives alignment work a place in the model.
 
-The third branch is not a refinement. Without it the framework has no slot for the failure mode that has actually occurred most often so far, and an analyst is forced to record "nobody intended harm" as $M = 1$, which inverts the term's meaning. It also carries a measurement advantage the other two lack: the deference factor is *automation bias*, which has been studied for decades in aviation, clinical decision support and process control, and reported as a rate. Where propensity in the autonomous branch has no established measurement, this branch has one already.
+The third branch is not a refinement. Without it the framework has no slot for the failure mode that has actually occurred most often so far, and an analyst is forced to record "nobody intended harm" as $M = 1$, which inverts the term's meaning. It also carries a measurement *route* the other two lack, which is not the same as a number. The deference factor is *automation bias*, for which there is a fifty-year experimental protocol in aviation (Mosier and Skitka), clinical decision support (Goddard et al.) and process control (Manzey et al.), reporting commission and omission rates conditional on the aid being wrong. The protocol transfers; the rates do not. Published figures span essentially the whole range, from no effect at all to near-total compliance with a false engine-fire warning, and Povyakalo et al. (2013) find the sign reversing with operator skill and case difficulty — the strongest readers were made *worse* on the hardest cases. Both systematic reviews of this literature decline to pool it: Goddard et al. (2012) found only four of seventy-four studies homogeneous enough to combine, and Lyell and Coiera (2017) report that the variability in how the effect is measured makes studies hard to compare at all. The process-control leg is laboratory microworlds rather than field data.
+
+**Mind the denominator.** The reassuringly narrow cluster around 5–11% is the share of *all* cases in which a correct decision was reversed. The factorisation needs a different quantity: the share of cases *in which the aid was wrong* where the operator went along with it, and those figures run from about a fifth to all of them. Quoting the first in place of the second understates the trigger by an order of magnitude.
+
+So this branch is elicitable by an established method, not already calibrated: a deference rate has to be measured in its own task, stakes and accountability regime, and it is endogenous to the interface and the incentives rather than a constant to look up. The autonomous branch has no such protocol at all.
 
 Total hazard is the sum over all scenarios, including interaction scenarios (Section 4).
 
@@ -314,6 +319,8 @@ The effect is large even when the coupling is modest. Take the values of Section
 - raising $C$ from 0.2 to 0.8 multiplies the hazard by 9, not by 4.
 
 Coupling is expected to be strong for loss of control and weak for misuse, where the human actor, not the model, has to obtain the access.
+
+**The error branch reverses the sign, and that is a finding rather than a gap.** Every form above is monotone increasing in $C$, and Section 11 leans on the same direction. In the error branch it does not hold: a more capable model errs less often, so $P(\text{dangerous error})$ falls with $C$, while a more fluent and better-calibrated-sounding model is deferred to more, so $P(\text{accepts})$ rises with it. The hazard is therefore non-monotone in capability — it can rise, peak, and fall again as the system becomes reliable enough that its residual errors are rare even when deference is total. No coupling form in this section can express that, and the inequality $d \ln \lambda_s / d \ln C_s > \theta_C$ of Section 11 is false for this branch. Exposure coupling is also near zero here: the deferring human's reach is not something the model's capability extends.
 
 ## 7. The Control Gap Index
 
@@ -363,7 +370,7 @@ Two properties of the index need a warning.
   - In the dashboard of Section 15, $\nu$ accounts for 0.95 of the 2.33 rise in $\ln K$ over ten years, the largest single term.
   - At those growth rates the indices reach their ceiling within 17 to 33 years. After that, $\nu$ is the only term on the consequence side that can still move.
   - The definition of a "qualifying episode" is therefore the most consequential measurement choice in the framework. Episodes are very unequal in risk, so they should be stratified or weighted by permission level, not simply counted.
-- **The cancellation needs $\kappa_s$ to be constant.** Anything that changes the per-episode risk without passing through an index or a control term breaks it. Making propensity explicit (Section 6.1) removes the most obvious such change.
+- **The cancellation needs $\kappa_s$ to be constant.** Anything that changes the per-episode risk without passing through an index or a control term breaks it. Making the trigger explicit (Section 6.1) removes the most obvious such change. Note that redefining an index is itself such a change: this draft widened $M$ from propensity to the trigger, so a series that spans the two definitions is not comparable across it (Section 16).
 
 A Control Gap Index is always reported *per scenario*. The gap for biological misuse and the gap for autonomous cyber operations are different objects, and averaging them hides the one that matters.
 
@@ -442,7 +449,7 @@ The second: **precursors must be observed.** A reactor does not hide its near-mi
 | Agency $O$ | Autonomy, permissions, persistence, tool access in deployed systems |
 | Coupling $g$ | Self-exfiltration, privilege-escalation and oversight-evasion evaluations, as a function of capability |
 | Exposure $X$ | Inventory of consequential integrations of capable agents |
-| Trigger $M$ | Autonomous: rates of scheming, sandbagging and oversight subversion in evaluations. Misuse: abuse rates per user; threat intelligence. Error: the rate of dangerous-direction errors on scenario-relevant tasks, times the rate at which operators act on them unchecked — the latter is the automation-bias literature, and is the best-measured quantity anywhere in this table |
+| Trigger $M$ | Autonomous: rates of scheming, sandbagging and oversight subversion in evaluations. Misuse: abuse rates per user; threat intelligence. Error: the rate of dangerous-direction errors on scenario-relevant tasks, times the share of *those* cases in which the first recipient acts unchecked. The second factor is the automation-bias literature, the only quantity in this table with an established elicitation protocol from outside AI — but not a transportable number, and it must be conditioned on the aid being wrong, not measured across all cases |
 | Defence layers $e_\ell$ | Detection, intervention and containment rates in red-team exercises; incident data |
 | Common-mode $\rho$ | Fraction of successful bypasses that defeat several layers at once |
 | Recovery $\tau_{\text{rec}}$ | Total incident-time at risk divided by the number of incidents recovered — **not** the mean time to restore among them (see below) |
@@ -476,7 +483,7 @@ Three disciplines guard against the known bias of conjunctive models. The first 
 Figure 4 illustrates the first two points with deliberately uncertain, illustrative inputs:
 
 - index means $C=0.2$, $A=0.7$, $O=0.5$, $X=0.6$;
-- propensity fixed at its worst case, $M = 1$;
+- the trigger fixed at its worst case, $M = 1$;
 - layer effectiveness around 0.6;
 - common-mode rate around 0.1;
 - $p_I$ around 0.5;
@@ -526,7 +533,7 @@ Three consequences follow.
 
 Take one scenario over $T = 10$ years with constant, purely illustrative values.
 
-- **Indices:** $C=0.20$, $A=0.70$, $O=0.50$, $X=0.60$, with unit elasticities. Their product is $0.042$. Propensity is set to its worst case, $M = 1$, and there is no capability coupling.
+- **Indices:** $C=0.20$, $A=0.70$, $O=0.50$, $X=0.60$, with unit elasticities. Their product is $0.042$. The trigger is set to its worst case, $M = 1$, and there is no capability coupling.
 - **Defences:** $e = (0.6, 0.5, 0.5)$ and $\rho = 0.1$. This gives $V = 0.1 + 0.9 \times (0.4 \times 0.5 \times 0.5) = 0.19$.
 - **Recovery:** escalation and recovery equally fast, so $p_I = 0.5$.
 
@@ -613,7 +620,7 @@ A per-scenario dashboard would report the indices behind $K_s$ and $\Gamma_s$ as
    Access       ▲  +2%/yr         Containment    ■ flat
    Agency       ▲  +4%/yr         Independence   ▼ ρ rising
    Exposure     ▲  +3%/yr         Recovery       ▲ τ falling
-   Propensity   ■  flat
+   Trigger      ■  flat
    ─────────────────────────      ─────────────────────────
    K            ▲ +26%/yr         Γ              ▲  +6%/yr
 
@@ -630,8 +637,8 @@ A per-scenario dashboard would report the indices behind $K_s$ and $\Gamma_s$ as
 - **Reflexivity.** Near-misses trigger regulation, which changes the hazard. A static calibration will drift.
 - **Precursor calibration assumes shared elasticities** between near-misses and catastrophes (Section 9.1).
 - **Precursors can be strategically censored.** A deceptive system suppresses its own near-misses, so precursor-based calibration is weakest in the scenario where it is needed most (Section 9.1).
-- **The error branch is new and least developed.** Section 6.6's third branch was added because a real precursor did not fit the other two. Its factorisation into error rate and deference rate is a hypothesis, and the two factors are unlikely to be independent: an operator's willingness to defer plausibly depends on how often the system has been wrong before.
-- **The framework is more mature for misuse than for loss of control.** Propensity is hard to measure, the coupling coefficients are unknown, and precursors may be censored. All three problems fall on the autonomous branch.
+- **The error branch is new and rests on one case.** Section 6.6's third branch was added because a single real precursor did not fit the other two, which is exactly the reflexivity this section warns about, and Section 9.1's shared-elasticities assumption has not been argued for it. Its weakness is not the factorisation — written conditionally that is an identity — but the *transportability* of the deference rate: reported automation-bias rates span more than an order of magnitude and reverse sign with operator skill and task difficulty, so a rate elicited in one setting says little about another. Worse for the tail, the conditions that make a system err are the conditions that make its operator least able to check, so error and deference co-occur precisely where the consequences are largest.
+- **The framework is more mature for misuse than for loss of control.** The trigger is hard to measure, the coupling coefficients are unknown, and precursors may be censored. All three problems fall on the autonomous branch.
 - **Redefining an index breaks the comparison.** The Control Gap Index is invariant to rescaling an index but not to shifting its zero (Section 7). Capability is the *share* of a required capability set, so adding a newly recognised capability to that set is a shift, not a rescale — and evaluation suites are revised yearly. In practice the index moves whenever the instrument changes, so a reported series must state which definition each year used.
 - **The indices depend on immature evaluation suites.** Those suites are also vulnerable to gaming, and the capability index is blind to capability beyond sufficiency.
 
@@ -648,7 +655,7 @@ Catastrophic AI risk needs the same treatment. Instead of arguing about one numb
 - **Who can access that capability?**
 - **Can it act?**
 - **What can it reach?**
-- **Would the agent, human or AI, try?**
+- **Does the chain start at all — someone tries, or someone acts on a confident error?**
 - **How effective, and how independent, are our controls?**
 - **How quickly can we recover, relative to how quickly things escalate?**
 - **And which of these is changing fastest?**
@@ -691,8 +698,13 @@ That is the variable worth watching.
 - Koessler, L., Schuett, J. & Anderljung, M. (2024). [Risk thresholds for frontier AI.](https://arxiv.org/abs/2406.14713) arXiv:2406.14713.
 - Leveson, N. (2011). [*Engineering a Safer World: Systems Thinking Applied to Safety.*](https://direct.mit.edu/books/oa-monograph/2908/Engineering-a-Safer-WorldSystems-Thinking-Applied) MIT Press (open access).
 - Lewis, H. W. et al. (1978). [*Risk Assessment Review Group Report to the U.S. Nuclear Regulatory Commission.*](https://www.osti.gov/biblio/6489792) NUREG/CR-0400.
+- Mosier, K. L., Skitka, L. J., Dunbar, M. & McDonnell, L. (2001). [Aircrews and automation bias: the advantages of teamwork?](https://pubmed.ncbi.nlm.nih.gov/11543300/) *International Journal of Aviation Psychology*, 11(1), 1–14.
+- Lyell, D. & Coiera, E. (2017). [Automation bias and verification complexity: a systematic review.](https://doi.org/10.1093/jamia/ocw105) *JAMIA*, 24(2), 423–431.
+- Parasuraman, R. & Manzey, D. H. (2010). [Complacency and bias in human use of automation: an attentional integration.](https://journals.sagepub.com/doi/10.1177/0018720810376055) *Human Factors*, 52(3), 381–410.
 - Perrow, C. (1984). [*Normal Accidents: Living with High-Risk Technologies.*](https://press.princeton.edu/books/paperback/9780691004129/normal-accidents) Basic Books; updated edition Princeton University Press, 1999.
+- Povyakalo, A. A., Alberdi, E., Strigini, L. & Ayton, P. (2013). [How to discriminate between computer-aided and computer-hindered decisions.](https://doi.org/10.1177/0272989x12465490) *Medical Decision Making*, 33(1), 98–107.
 - Reason, J. (1990). [*Human Error.*](https://doi.org/10.1017/CBO9781139062367) Cambridge University Press.
+- Goddard, K., Roudsari, A. & Wyatt, J. C. (2012). [Automation bias: a systematic review of frequency, effect mediators, and mitigators.](https://pubmed.ncbi.nlm.nih.gov/21685142/) *JAMIA*, 19(1), 121–127.
 - Sandberg, A., Drexler, E. & Ord, T. (2018). [Dissolving the Fermi paradox.](https://arxiv.org/abs/1806.02404) arXiv:1806.02404.
 - Silver, N. (2015). [Donald Trump's six stages of doom.](https://fivethirtyeight.com/features/donald-trumps-six-stages-of-doom/) *FiveThirtyEight*, 6 August 2015.
 - U.S. Nuclear Regulatory Commission (1975). [*Reactor Safety Study*](https://www.nrc.gov/reading-rm/basic-ref/students/history-101/reactor-safety-study) (WASH-1400, NUREG-75/014).
