@@ -59,32 +59,33 @@ simulate(MCConfig(correlation=0.0)).summary()   # median 0.22%, mean 0.94%
 simulate(MCConfig(correlation=0.6)).summary()   # median 0.23%, mean 1.22%
 ```
 
-## Play with it
+## Try it
+
+**[Open the app](https://pizuricv-controlgap-appapp-deploy-ns3yua.streamlit.app/)** — ten short chapters that walk through the
+paper, with every number live. Pick a scenario, move the sliders, and each chapter ends with what just happened and what to try next.
+
+| | |
+|---|---|
+| 1 · Start here | The question, and a scenario to carry with you |
+| 2 · The chain | Five things must line up. Watch the hazard shrink through them |
+| 3 · The missing number | Why there is no headline p(doom): it all rides on λ₀ |
+| 4 · The layers | Three good layers, one shared blind spot, and the floor it puts under V |
+| 5 · The race | Escalation against recovery — where reversibility is won or lost |
+| 6 · Where effort pays | What a 10% improvement buys, lever by lever |
+| 7 · What if | Model advances, governments and open weights, and the terms each one moves |
+| 8 · The control gap | The one number that survives: is capability outrunning control? |
+| 9 · How much we know | Correlated uncertainty, and how much of the spread is assumed |
+| 10 · Your turn | Spend a budget of effort and buy the hazard down |
+
+Run it yourself:
 
 ```bash
 pip install -e ".[app]"
 streamlit run app/app.py
 ```
 
-An explorable version of the paper. Pick a scenario, move the sliders, and each tab explains one idea and suggests what to try:
-
-- **Start here**: the equation with your live numbers, and how the chain shrinks the hazard.
-- **Probability**: why there is no headline number. The answer depends on λ₀.
-- **Defences**: the common-mode floor, and scoring a near-miss.
-- **Levers**: where a 10% improvement pays off most.
-- **What if**: apply model advances, government action and open-weight release, and see which terms they move.
-- **Control Gap Index**: set yearly trends and see whether capability is outrunning control.
-- **Monte Carlo**: correlated uncertainty, and how much of the spread is assumed.
-
-Every value is illustrative. The defaults reproduce the paper's worked example.
-
 There is also a notebook tour, [`notebooks/controlgap_tour.ipynb`](notebooks/controlgap_tour.ipynb), which walks through
 the paper section by section. Rebuild it with `python notebooks/build_notebook.py`.
-
-### Hosting it
-
-The app deploys as is to [Streamlit Community Cloud](https://share.streamlit.io) (free): choose this repository, the
-**`deploy`** branch and `app/app.py`. CI fast-forwards `deploy` only after the tests pass on `main`, so a broken commit never goes live.
 
 ## Modules
 
@@ -112,6 +113,12 @@ pytest
 The tests pin the numbers quoted in the paper: `V = 0.19`, the 0.04%–33% table,
 the dashboard's +0.17 slope, the Monte Carlo summary and the spread decomposition.
 They also run the app headlessly.
+
+## Tell us we're wrong
+
+The app has a feedback panel in its sidebar that opens a pre-filled GitHub issue with your current settings attached, so a
+report is reproducible. It is a link, not an API call: a public app should never carry a write token, and this way the issue
+is filed under your own account.
 
 ## Status
 

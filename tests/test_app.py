@@ -1,76 +1,171 @@
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip("streamlit")
-from pathlib import Path  # noqa: E402
-
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 APP = str(Path(__file__).parents[1] / "app" / "app.py")
+CHAPTERS = ["start", "chain", "lambda0", "layers", "race", "levers", "whatif", "gap", "uncertainty", "challenge"]
+
+
+def _chapter_script(name, app_path, chapters_list):
+    """Run one chapter the way app.py would, without the navigation wrapper.
+
+    AppTest runs this as its own script, so it takes everything it needs as
+    arguments rather than closing over the test module.
+    """
+    import streamlit as st
+
+    import chapters
+    import ui
+
+    ui.init()
+    st.markdown(ui.CSS.replace("__BG__", "#ffffff"), unsafe_allow_html=True)
+    st.session_state["pages"] = dict.fromkeys(chapters_list, app_path)  # only read when a "next" button is clicked
+    getattr(chapters, name)()
+    ui.sidebar_readout()
 
 
 def run(at):
-    at.run(timeout=120)
-    assert not at.exception, [e.value for e in at.exception]
+    at.run(timeout=180)
+    assert not at.exception, [f"{e.value}\n{e.stack_trace}" for e in at.exception]
     return at
+
+
+def chapter(page: str = "start") -> AppTest:
+    return AppTest.from_function(_chapter_script, args=(page, APP, CHAPTERS), default_timeout=180)
+
+
+def app(page: str = "start"):
+    return run(chapter(page))
 
 
 def metric(at, label):
     return next(m.value for m in at.metric if m.label.endswith(label))
 
 
+def sliders(at):
+    return {w.label: w for w in at.slider}
+
+
+def test_the_app_itself_starts():
+    at = run(AppTest.from_file(APP))
+    assert at.session_state.preset in ("The paper's example",)
+    assert at.markdown
+
+
+@pytest.mark.parametrize("page", CHAPTERS)
+def test_every_chapter_renders(page):
+    at = app(page)
+    assert at.markdown, f"{page} rendered nothing"
+
+
 def test_defaults_reproduce_section_12():
-    at = run(AppTest.from_file(APP))
-    assert metric(at, "Residual vulnerability V") == "0.190"
-    assert metric(at, "Combined factor") == "0.00399"
-    assert metric(at, "P(catastrophe within 10 yr)") == "0.40%"
+    assert app("chain").session_state.P["C"] == 0.20
+    assert metric(app("lambda0"), "P(catastrophe within 10 yr)") == "0.40%"
 
 
-def test_sliders_coupling_and_gate():
-    at = run(AppTest.from_file(APP))
-    by_label = {w.label: w for w in at.slider}
-    by_label["Coupling g"].set_value(0.5)
-    by_label["Common-mode bypass ρ"].set_value(0.3)
-    by_label["Capability C"].set_value(0.95)
-    at.toggle[0].set_value(True)
+def test_parameters_survive_moving_between_chapters():
+    at = app("chain")
+    sliders(at)["Capability C"].set_value(0.9)
     run(at)
-    assert float(metric(at, "Combined factor")) > 0.00399
+    assert at.session_state.P["C"] == 0.9
+
+    # a different chapter, carrying the store over, then back again
+    other = chapter("layers")
+    other.session_state["P"] = at.session_state["P"]
+    other.session_state["preset"] = at.session_state["preset"]
+    run(other)
+    back = chapter("chain")
+    back.session_state["P"] = other.session_state["P"]
+    back.session_state["preset"] = other.session_state["preset"]
+    run(back)
+    assert back.session_state.P["C"] == 0.9
+    assert sliders(back)["Capability C"].value == 0.9
 
 
-def test_what_if_and_presets():
-    at = run(AppTest.from_file(APP))
-    sliders = {w.label: w for w in at.slider}
-    sliders["Open weights: proliferation"].set_value(100)
+def test_scenario_cards_load_a_preset_and_reset_restores_it():
+    at = app("start")
+    next(b for b in at.button if b.key == "pick_Autonomous cyber operations").click()
+    run(at)
+    assert at.session_state.preset == "Autonomous cyber operations"
+    assert at.session_state.P["C"] == 0.45
+    at.session_state.P["C"] = 0.11
+    next(b for b in at.sidebar.button if "Reset" in b.label).click()
+    run(at)
+    assert at.session_state.P["C"] == 0.45
+
+
+def test_layers_show_the_common_mode_floor():
+    at = app("layers")
+    s = sliders(at)
+    for name in ("Detection effectiveness", "Intervention effectiveness", "Containment effectiveness"):
+        s[name].set_value(0.99)
+    s["Common-mode bypass ρ"].set_value(0.2)
+    run(at)
+    assert metric(at, "V — what gets through everything").startswith("0.20")
+
+
+def test_race_reports_the_split():
+    at = app("race")
+    s = sliders(at)
+    s["Escalation rate (per day)"].set_value(3.0)
+    s["Mean time to recover (days)"].set_value(1.0)
+    run(at)
+    assert metric(at, "Of 100 events that get through…") == "75 become irreversible"
+
+
+def test_whatif_strip_and_open_weights():
+    at = app("whatif")
+    sliders(at)["Open weights: proliferation"].set_value(100)
     run(at)
     strip = next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
-    assert float(strip.split('cg-strip-num">×')[1].split("<")[0]) > 1 and "raises hazard" in strip
-    {w.label: w for w in at.slider}["Open weights: defensive ecosystem"].set_value(100)
-    at.selectbox[0].set_value("Autonomous cyber operations")
-    run(at)
-    assert metric(at, "Residual vulnerability V") != "0.190"
+    assert float(strip.split('cg-strip-num">×')[1].split("<")[0]) > 1
+    assert "raises hazard" in strip
+    assert metric(at, "Open weights, on net") != "not applied"
 
 
-def test_intro_shows_once_and_can_be_reopened():
-    at = run(AppTest.from_file(APP))
-    assert at.session_state.intro_open and at.session_state.intro_step == 0
-    next(b for b in at.button if b.label == "Next").click()
+def test_control_gap_slope_matches_the_paper_dashboard():
+    at = app("gap")
+    assert metric(at, "Implied hazard growth") == "+24% / yr"
+    s = sliders(at)
+    for name in ("Detection (points)", "Intervention (points)", "Containment (points)"):
+        s[name].set_value(3.0)
+    s["Recovery time (%)"].set_value(-20)
+    s["Episodes ν"].set_value(-10)
     run(at)
-    assert at.session_state.intro_step == 1
-    next(b for b in at.button if b.label == "Skip intro").click()
-    run(at)
-    assert not at.session_state.intro_open
-    assert not [b for b in at.button if b.label == "Next"]
-    next(b for b in at.button if b.label == "How to read this app").click()
-    run(at)
-    assert at.session_state.intro_open and at.session_state.intro_step == 0
+    assert float(metric(at, "Implied hazard growth").rstrip("% / yr")) < 0
+    assert at.success
 
 
-def test_tiny_hazard_is_never_shown_as_zero_and_banner_gives_the_level():
-    at = run(AppTest.from_file(APP))
-    sliders = {w.label: w for w in at.slider}
+def test_challenge_spends_a_budget_and_refuses_to_overspend():
+    at = app("challenge")
+    s = sliders(at)
+    s["Incident response capacity"].set_value(100)
+    run(at)
+    strip = next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
+    assert "15 / 100 pts spent" in strip
+    for label in list(sliders(at)):
+        sliders(at)[label].set_value(100)
+    run(at)
+    assert "over budget" in next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
+
+
+def test_tiny_values_never_display_as_zero():
+    at = app("chain")
+    s = sliders(at)
     for label in ("Capability C", "Access A", "Agency O", "Exposure X", "Propensity M"):
-        sliders[label].set_value(0.01)
+        s[label].set_value(0.01)
     run(at)
-    assert "× 10⁻" in metric(at, "Combined factor")
-    banner = next(m.value for m in at.markdown if 'class="cg-hero"' in m.value)
-    assert "from a very low base" in banner
-    assert "× 10⁻" in banner or "lower than" in banner
+    assert "× 10⁻" in next(m.value for m in at.sidebar.markdown if "Combined factor" in m.value)
+
+
+def test_feedback_links_are_prefilled_and_carry_no_token():
+    at = app("start")
+    urls = [b.proto.url for b in at.sidebar.get("link_button")]
+    assert urls, "no feedback links rendered"
+    for url in urls:
+        assert url.startswith("https://github.com/pizuricv/controlgap/issues/new?")
+        assert "title=" in url and "body=" in url and "labels=" in url
+        assert "token" not in url.lower()
