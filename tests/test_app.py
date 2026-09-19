@@ -230,3 +230,19 @@ def test_an_incident_can_be_started_from_like_any_scenario():
     assert at.session_state.P["X"] == first.preset["X"]
     # and the tour continues from chapter 2, exactly like the scenario cards
     assert any("Chapter 2" in b.label for b in at.button)
+
+
+def test_choosing_an_event_shows_its_story_and_sources_immediately():
+    import incidents
+
+    first = incidents.INCIDENTS[0]
+    at = app("start")
+    text = " ".join(m.value for m in at.markdown)
+    for incident in incidents.INCIDENTS:  # every card carries a teaser and its sources
+        assert incident.summary.split(". ")[0] in text, incident.key
+        assert all(url in text for _, url in incident.sources), incident.key
+    next(b for b in at.button if b.key == f"start_{first.key}").click()
+    run(at)
+    told = " ".join(m.value for m in at.markdown)
+    assert first.summary in told, "the full account should appear once chosen"
+    assert first.scenario_why in told

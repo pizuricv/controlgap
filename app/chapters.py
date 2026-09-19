@@ -77,11 +77,14 @@ def incident_cards(on_start: bool = False):
     for col, incident in zip(st.columns(len(INCIDENTS), gap="medium"), INCIDENTS):
         active = incident.key == selected and not on_start
         with col.container(key=f"card_{'active' if active else incident.key}"):
-            icon = "\u26a0\ufe0f" if incident.rung >= 3 else "\U0001f9ea"  # kept out of the f-string: 3.10 forbids backslashes there
+            icon = "\u26a0\ufe0f" if incident.rung >= 3 else "\U0001f9ea"
+            teaser = incident.summary.split(". ")[0] + "."
+            links = " \u00b7 ".join(f'<a href="{url}" target="_blank">{name}</a>' for name, url in incident.sources)  # kept out of the f-string: 3.10 forbids backslashes there
             st.markdown(
                 f'<div class="cg-card-icon">{icon}</div>'
                 f'<div class="cg-card-name">{RUNGS[incident.rung]}</div>'
-                f'<div class="cg-card-body"><b>{incident.title}</b><br>{incident.when}</div>',
+                f'<div class="cg-card-body"><b>{incident.title}</b><br>'
+                f'<span style="opacity:.75">{incident.when}</span><br><br>{teaser}<br><br>{links}</div>',
                 unsafe_allow_html=True,
             )
             if on_start:
@@ -172,6 +175,19 @@ For a catastrophe, **every one of these has to line up at once**:
         "four above. Chapter 6 comes back to them and scores how close each one came."
     )
     incident_cards(on_start=True)
+    chosen = next((i for i in INCIDENTS if i.scenario_name == st.session_state.preset), None)
+    if chosen:
+        st.write("")
+        with st.container(border=True):
+            st.markdown(f"##### You are carrying: {chosen.title}")
+            st.caption(f"{chosen.when} · rung {chosen.rung} of the precursor ladder: {RUNGS[chosen.rung]}")
+            left, right = st.columns([3, 2], gap="large")
+            left.markdown(chosen.summary)
+            left.markdown("Sources: " + " · ".join(f"[{name}]({url})" for name, url in chosen.sources))
+            right.markdown(f"**Why these starting values**\n\n{chosen.scenario_why}")
+            right.markdown(" ".join(f"`{t}`" for t in chosen.tags))
+            if right.button("See how close it came \u2192", width="stretch"):
+                st.switch_page(go("precursors"))
     next_chapter("Chapter 2 · The chain", go("chain"))
 
 
