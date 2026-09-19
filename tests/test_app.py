@@ -6,7 +6,7 @@ pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
 APP = str(Path(__file__).parents[1] / "app" / "app.py")
-CHAPTERS = ["start", "chain", "lambda0", "layers", "race", "levers", "whatif", "gap", "uncertainty", "challenge"]
+CHAPTERS = ["start", "chain", "lambda0", "layers", "race", "precursors_chapter", "levers", "whatif", "gap", "uncertainty", "challenge"]
 
 
 def _chapter_script(name, app_path, chapters_list):
@@ -22,7 +22,7 @@ def _chapter_script(name, app_path, chapters_list):
 
     ui.init()
     st.markdown(ui.CSS.replace("__BG__", "#ffffff"), unsafe_allow_html=True)
-    st.session_state["pages"] = dict.fromkeys(chapters_list, app_path)  # only read when a "next" button is clicked
+    st.session_state["pages"] = dict.fromkeys([*chapters_list, "precursors"], app_path)  # only read when a "next" button is clicked
     getattr(chapters, name)()
     ui.sidebar_readout()
 
@@ -169,3 +169,34 @@ def test_feedback_links_are_prefilled_and_carry_no_token():
         assert url.startswith("https://github.com/pizuricv/controlgap/issues/new?")
         assert "title=" in url and "body=" in url and "labels=" in url
         assert "token" not in url.lower()
+
+
+def test_precursor_chapter_cites_every_event_and_scores_them():
+    import incidents
+
+    at = app("precursors_chapter")
+    text = " ".join(m.value for m in at.markdown)
+    for incident in incidents.INCIDENTS:
+        assert incident.sources, f"{incident.key} has no source"
+        for _, url in incident.sources:
+            assert url.startswith("https://"), url
+    shown = incidents.INCIDENTS[0]
+    assert shown.title in text
+    assert all(url in text for _, url in shown.sources)
+    assert "our judgement, not the source" in " ".join(c.value for c in at.caption)
+    assert metric(at, "Chance it would have completed")
+
+
+def test_proposing_an_event_asks_for_a_source():
+    at = app("precursors_chapter")
+    urls = [b.proto.url for b in at.get("link_button")]
+    proposal = next(u for u in urls if "precursor" in u)
+    assert proposal.startswith("https://github.com/pizuricv/controlgap/issues/new?")
+    assert "Source" in __import__("urllib.parse", fromlist=["unquote"]).unquote(proposal)
+
+
+def test_fitting_elasticities_from_precursor_counts():
+    at = app("precursors_chapter")
+    theta_a = metric(at, "θ for access")
+    assert 0.5 < float(theta_a) < 3.0, theta_a
+    assert "90% interval" in next(m.delta for m in at.metric if m.label.endswith("θ for access"))

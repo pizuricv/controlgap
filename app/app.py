@@ -19,6 +19,7 @@ PAGES = {
     "lambda0": st.Page(chapters.lambda0, title="The missing number", icon=":material/help:", url_path="missing-number"),
     "layers": st.Page(chapters.layers, title="The layers", icon=":material/shield:", url_path="layers"),
     "race": st.Page(chapters.race, title="The race", icon=":material/timer:", url_path="race"),
+    "precursors": st.Page(chapters.precursors_chapter, title="What nearly happened", icon=":material/history:", url_path="precursors"),
     "levers": st.Page(chapters.levers, title="Where effort pays", icon=":material/tune:", url_path="levers"),
     "whatif": st.Page(chapters.whatif, title="What if", icon=":material/alt_route:", url_path="what-if"),
     "gap": st.Page(chapters.gap, title="The control gap", icon=":material/monitoring:", url_path="control-gap"),
@@ -30,6 +31,7 @@ st.session_state["pages"] = PAGES
 nav = st.navigation(
     {
         "Understand": [PAGES["start"], PAGES["chain"], PAGES["lambda0"], PAGES["layers"], PAGES["race"]],
+        "Evidence": [PAGES["precursors"]],
         "Act": [PAGES["levers"], PAGES["whatif"]],
         "Measure": [PAGES["gap"], PAGES["uncertainty"]],
         "Play": [PAGES["challenge"]],

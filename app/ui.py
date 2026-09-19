@@ -359,11 +359,39 @@ def issue_url(title: str, body: str, labels: str = "feedback") -> str:
     return f"{REPO}/issues/new?title={quote(title)}&body={quote(body)}&labels={quote(labels)}"
 
 
+INCIDENT_BODY = """**The event**
+
+<!-- one paragraph, in your own words -->
+
+**Source** (required: a published report, not a social-media post)
+
+<!-- URL -->
+
+**Where it sits on the precursor ladder (paper 9.1)**
+
+- [ ] 1 - a dangerous capability shown in the lab
+- [ ] 2 - a safeguard bypassed in testing
+- [ ] 3 - an incident in deployment
+- [ ] 4 - a near-miss stopped by a late layer
+
+**Which layers did it get past, and what stopped it?**
+
+<!-- detection / intervention / containment -->
+
+**Which part of the model is it evidence about?**
+
+<!-- e.g. the common-mode rate, propensity, the recovery clock -->
+"""
+
+
 def state_block() -> str:
     """The current settings, as a fenced block, so a report is reproducible."""
     store = P()
     values = "\n".join(f"{k} = {store[k]}" for k in KEYS + GROWTH_KEYS if k in store)
     return f"Scenario: {st.session_state.preset}\n\n```\n{values}\n```"
+
+
+INCIDENT_ISSUE = ""  # set below, once issue_url is defined
 
 
 def feedback_links(where=None) -> None:
@@ -416,3 +444,6 @@ def sidebar_readout() -> None:
         st.caption("Opens a pre-filled issue on GitHub under your own account. Your current settings travel with it.")
         feedback_links()
     sb.caption(f"[Paper]({PAPER}) · [Code]({REPO}) · Code MIT, paper CC BY 4.0. All values illustrative.")
+
+
+INCIDENT_ISSUE = issue_url("[precursor] ", INCIDENT_BODY, "precursor,data")

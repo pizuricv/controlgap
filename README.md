@@ -64,7 +64,7 @@ simulate(MCConfig(correlation=0.6)).summary()   # median 0.23%, mean 1.22%
 
 ## Try it
 
-**[Open the app](https://controlgap.streamlit.app/)** — ten short chapters that walk through the
+**[Open the app](https://controlgap.streamlit.app/)** — eleven short chapters that walk through the
 paper, with every number live. Pick a scenario, move the sliders, and each chapter ends with what just happened and what to try next.
 
 | | |
@@ -74,11 +74,12 @@ paper, with every number live. Pick a scenario, move the sliders, and each chapt
 | 3 · The missing number | Why there is no headline p(doom): it all rides on λ₀ |
 | 4 · The layers | Three good layers, one shared blind spot, and the floor it puts under V |
 | 5 · The race | Escalation against recovery — where reversibility is won or lost |
-| 6 · Where effort pays | What a 10% improvement buys, lever by lever |
-| 7 · What if | Model advances, governments and open weights, and the terms each one moves |
-| 8 · The control gap | The one number that survives: is capability outrunning control? |
-| 9 · How much we know | Correlated uncertainty, and how much of the spread is assumed |
-| 10 · Your turn | Spend a budget of effort and buy the hazard down |
+| 6 · What nearly happened | Real, cited incidents placed on the paper's precursor ladder and scored — then fit the elasticities from counts |
+| 7 · Where effort pays | What a 10% improvement buys, lever by lever |
+| 8 · What if | Model advances, governments and open weights, and the terms each one moves |
+| 9 · The control gap | The one number that survives: is capability outrunning control? |
+| 10 · How much we know | Correlated uncertainty, and how much of the spread is assumed |
+| 11 · Your turn | Spend a budget of effort and buy the hazard down |
 
 Run it yourself:
 

@@ -8,11 +8,13 @@ import pandas as pd
 import streamlit as st
 
 import controlgap as cg
-from controlgap import precursors
+from controlgap import precursors as cg_precursors
 from controlgap.levers import GROUPS, LEVERS, apply_levers
 from controlgap.mc import MCConfig, beta_params, simulate, spread_decomposition
+from incidents import BY_KEY, INCIDENTS, RUNGS
 from ui import (
     FIT,
+    INCIDENT_ISSUE,
     KEYS,
     LAYERS,
     NAMES,
@@ -60,7 +62,7 @@ def go(name: str):
 # ================================================================ 1. Start here
 def start():
     opener(
-        "Chapter 1 of 10",
+        "Chapter 1 of 11",
         "How close is AI capability to consequential power?",
         "Frank Drake never knew how many alien civilisations existed. His equation mattered because it broke one "
         "unanswerable question into several that could be answered separately. This is the same move, for catastrophic AI risk.",
@@ -121,7 +123,7 @@ For a catastrophe, **every one of these has to line up at once**:
 # ================================================================ 2. The chain
 def chain():
     opener(
-        "Chapter 2 of 10 · Understand",
+        "Chapter 2 of 11 · Understand",
         "Everything has to line up",
         "Five things decide how much consequential power a system has. They multiply, so the hazard is only as large as "
         "the chain allows — and any one of them at zero ends it. Move them and watch the chain.",
@@ -170,7 +172,7 @@ def chain():
 # ================================================================ 3. The missing number
 def lambda0():
     opener(
-        "Chapter 3 of 10 · Understand",
+        "Chapter 3 of 11 · Understand",
         "The number nobody has",
         "You now have a chain. Turning it into a probability needs one more thing: how often a catastrophe would happen "
         "if everything were at maximum and nothing stopped it. Nobody knows that number, because it has never happened.",
@@ -235,7 +237,7 @@ def _cheese_svg(e_values, rho: float, ink: str) -> str:
 
 def layers():
     opener(
-        "Chapter 4 of 10 · Control",
+        "Chapter 4 of 11 · Control",
         "Three good layers, one shared blind spot",
         "Detection, intervention, containment. If they failed independently, three layers that each stop 90% would let "
         "one event in a thousand through. Real barriers are not independent — and that changes what is worth buying.",
@@ -274,7 +276,7 @@ def layers():
     with st.expander("Score a near-miss, the way nuclear safety does"):
         a, b = st.columns([2, 3])
         passed_n = a.radio("How many layers did the event get past before something stopped it?", [0, 1, 2], index=2, horizontal=True)
-        score = precursors.conditional_catastrophe_probability(layers_now[:passed_n], layers_now[passed_n:], rho_now, float(s.p_I))
+        score = cg_precursors.conditional_catastrophe_probability(layers_now[:passed_n], layers_now[passed_n:], rho_now, float(s.p_I))
         naive = float(np.prod([1 - v for v in layers_now[passed_n:]]) * s.p_I)
         c, d = a.columns(2)
         c.metric("Would have completed", f"{score:.1%}")
@@ -291,7 +293,7 @@ def layers():
 # ================================================================ 5. The race
 def race():
     opener(
-        "Chapter 5 of 10 · Control",
+        "Chapter 5 of 11 · Control",
         "The race you do not get to re-run",
         "Something got through. Now two clocks start: the event spreading, and you detecting, isolating and restoring. "
         "Whichever finishes first decides whether this is an incident you talk about afterwards, or one you cannot undo.",
@@ -338,13 +340,133 @@ def race():
         "Set escalation to 5/day and recovery to 10 days — the bio-misuse shape. Almost nothing is recoverable.",
         "Try to reach zero crosses. You cannot; you can only make them rare.",
     ])  # fmt: skip
-    next_chapter("Chapter 6 · Where effort pays", go("levers"))
+    next_chapter("Chapter 6 · What nearly happened", go("precursors"))
 
 
-# ================================================================ 6. The levers
+# ================================================================ 6. Precursors
+def precursors_chapter():
+    opener(
+        "Chapter 6 of 11 · Evidence",
+        "Nothing has happened yet. Calibrate on what nearly did",
+        "No irreversible AI catastrophe has occurred, so none of these numbers can be fitted to outcomes. Nuclear safety hit the same "
+        "wall and answered it with precursors: score the near-misses by how close they came. The US NRC has done exactly that since 1979. "
+        "Here are three real events, scored against the scenario you are carrying.",
+        "§9.1 Identifiability and precursors",
+    )
+    st.caption(
+        "Each summary follows its cited source. **Placing an event on this model's layers is our judgement, not the source's** — "
+        "it is there to show the method. Disagree loudly; there is a button at the bottom."
+    )
+    choice = st.segmented_control(
+        "Event",
+        [i.key for i in INCIDENTS],
+        format_func=lambda k: RUNGS[BY_KEY[k].rung],
+        default=INCIDENTS[0].key,
+        label_visibility="collapsed",
+    )
+    incident = BY_KEY[choice or INCIDENTS[0].key]
+
+    left, right = st.columns([3, 2], gap="large")
+    with left:
+        st.markdown(f"##### {incident.title}")
+        st.caption(f"{incident.when} · rung {incident.rung} of the ladder: {RUNGS[incident.rung]}")
+        st.markdown(incident.summary)
+        st.markdown(" ".join(f"`{t}`" for t in incident.tags))
+        st.markdown("Sources: " + " · ".join(f"[{name}]({url})" for name, url in incident.sources))
+
+    s = scenario()
+    rho_now, layers_now = float(s.effective_rho), [float(v) for v in s.effective_layers]
+    with right:
+        if incident.layers_passed is None:
+            focus("precursor").metric("What this one measures", "Propensity M", f"you have it at {float(s.effective['M']):.2f}", delta_color="off", delta_arrow="off")
+        else:
+            n = incident.layers_passed
+            score = cg_precursors.conditional_catastrophe_probability(layers_now[:n], layers_now[n:], rho_now, float(s.p_I))
+            naive = float(np.prod([1 - v for v in layers_now[n:]]) * s.p_I)
+            focus("precursor").metric(
+                "Chance it would have completed", f"{score:.1%}",
+                f"naive estimate {naive:.1%}", delta_color="off", delta_arrow="off",
+                help="Scored against your current layer effectivenesses, ρ and p_I. Getting past layers is evidence that a shared weakness is in play, so the honest score beats the naive one.")  # fmt: skip
+            st.caption(f"Passed **{n}** of 3 layers before something stopped it.")
+        st.info(incident.mapping_note, icon=":material/rule:")
+
+    takeaway(incident.teaches)
+    if incident.caveat:
+        takeaway(incident.caveat, warn=True)
+
+    st.divider()
+    a, b = st.columns([3, 2], gap="large")
+    a.markdown(
+        "**Why this is the only route.** Everything else in this model is a hypothesis about a thing that has never happened. Precursors are "
+        "the one place real numbers can enter: layer effectivenesses from how often each one catches something, ρ from how often a single "
+        "weakness defeats several at once, the recovery clock from how long incidents actually take to close.\n\n"
+        "It rests on one assumption worth saying out loud: **precursors must share the catastrophe's elasticities**. Calibrating on near-misses "
+        "assumes whatever drives a near-miss drives a catastrophe in the same proportion. Probabilistic risk assessment is criticised for exactly "
+        "this extrapolation, and the criticism lands here too."
+    )
+    with b.container(border=True):
+        st.markdown("**Know a better example?**")
+        st.caption("Real, cited events only. Opens a pre-filled issue under your own GitHub account.")
+        st.link_button("Propose an event", INCIDENT_ISSUE, width="stretch", icon=":material/add_link:")
+
+    st.divider()
+    _fit_panel()
+    next_chapter("Chapter 7 · Where effort pays", go("levers"))
+
+
+def _fit_panel():
+    """Estimate the elasticities from precursor counts, which is what §11 calls the scientific target."""
+    st.markdown("#### Then you can stop guessing the exponents")
+    st.markdown(
+        "Everywhere else in this app the elasticities θ are set to 1, because that is the paper's prior and nothing better exists yet. "
+        "They are not supposed to stay that way. Given enough precursor counts across periods where the indices differed, they can be "
+        "**estimated**: a Poisson regression of counts on the log indices, with episode volume as the exposure."
+    )
+    left, right = st.columns([3, 2], gap="large")
+    with left:
+        st.caption("One row per period or deployment. Edit the numbers, add rows, or paste your own.")
+        seed = pd.DataFrame({
+            "Episodes ν": [50_000, 80_000, 120_000, 200_000, 260_000, 340_000],
+            "Access A": [0.30, 0.38, 0.50, 0.62, 0.70, 0.80],
+            "Agency O": [0.20, 0.35, 0.30, 0.55, 0.50, 0.75],
+            "Precursors seen": [3, 9, 17, 48, 61, 132],
+        })  # fmt: skip
+        table = st.data_editor(seed, width="stretch", num_rows="dynamic", key="fit_rows",
+                               column_config={c: st.column_config.NumberColumn(format="%.2f" if "0." in str(seed[c][0]) else "%d") for c in seed.columns})  # fmt: skip
+    with right:
+        rows = table.dropna()
+        if len(rows) < 3:
+            st.info("Needs at least three complete rows.", icon=":material/info:")
+            return
+        try:
+            fit = cg_precursors.fit_elasticities(
+                rows["Precursors seen"].to_numpy(),
+                rows["Episodes ν"].to_numpy(),
+                {"A": rows["Access A"].to_numpy(), "O": rows["Agency O"].to_numpy()},
+            )
+        except Exception as err:  # collinear or constant indices, mostly
+            st.warning(f"No fit: {err}", icon=":material/warning:")
+            return
+        for name, label in (("A", "θ for access"), ("O", "θ for agency")):
+            lo, hi = fit.interval(name)
+            st.metric(label, f"{fit.theta[name]:.2f}", f"90% interval {lo:.2f} to {hi:.2f}", delta_color="off", delta_arrow="off")
+        st.caption(f"Per-episode precursor rate at indices of 1: {np.exp(fit.log_scale):.2e}")
+    takeaway(
+        "<b>This is the scientific target (§11).</b> “Access matters more than capability” is not an opinion, it is the claim "
+        "θ<sub>A</sub> &gt; θ<sub>C</sub> — something precursor data can settle. Note what the fit does <i>not</i> give you: "
+        "λ₀ is still missing, so this buys you the shape of the hazard, never its level."
+    )
+    takeaway(
+        "And it inherits the assumption from above. These θ describe <i>precursors</i>. Carrying them over to catastrophes assumes the two "
+        "share elasticities — the step every precursor programme has to make, and the one it can never fully justify.",
+        warn=True,
+    )
+
+
+# ================================================================ 7. The levers
 def levers():
     opener(
-        "Chapter 6 of 10 · Act",
+        "Chapter 7 of 11 · Act",
         "Where would effort actually pay?",
         "You have all the pieces now. Each bar shows how far the hazard falls if that one thing improves by 10%. "
         "These are ratios, so they hold whatever λ₀ turns out to be.",
@@ -377,13 +499,13 @@ def levers():
         "<b>Nothing here says you have to stop capability.</b> Every factor is a lever, and several are cheaper to move than "
         "capability is. That claim holds as long as the levers are independent — which is exactly what coupling attacks."
     )
-    next_chapter("Chapter 7 · Who moves what", go("whatif"))
+    next_chapter("Chapter 8 · Who moves what", go("whatif"))
 
 
 # ================================================================ 7. What if
 def whatif():
     opener(
-        "Chapter 7 of 10 · Act",
+        "Chapter 8 of 11 · Act",
         "Model advances, governments, open weights",
         "None of these acts on *risk* in general. Each one acts on particular terms, and some of them pull in both directions "
         "at once. Dial in a mix and watch the hazard move.",
@@ -443,13 +565,13 @@ def whatif():
         "safeguards, and it also builds the defensive ecosystem that lowers the shared blind spot. The sign depends on the scenario "
         "and on how strong that second effect really is. The framework does not settle the argument — it says which measurement would."
     )
-    next_chapter("Chapter 8 · The number to watch", go("gap"))
+    next_chapter("Chapter 9 · The number to watch", go("gap"))
 
 
 # ================================================================ 8. The control gap
 def gap():
     opener(
-        "Chapter 8 of 10 · Measure",
+        "Chapter 9 of 11 · Measure",
         "The one number that survives",
         "Levels need a λ₀ nobody has. Ratios do not. Compare this year's hazard with a reference year and the unknown scale "
         "cancels exactly — which leaves a question you can actually answer: is consequential capability pulling ahead of control?",
@@ -508,7 +630,7 @@ def gap():
         "Watch which bar is longest. Episode volume ν is usually the winner, and it is the only term with no ceiling: the indices "
         "stop at 1, deployments do not. That makes <i>what counts as one episode</i> the most consequential measurement choice in the whole framework."
     )
-    next_chapter("Chapter 9 · How much we don't know", go("uncertainty"))
+    next_chapter("Chapter 10 · How much we don't know", go("uncertainty"))
 
 
 # ================================================================ 9. Uncertainty
@@ -524,7 +646,7 @@ def _mc(means: tuple, e_mean: float, rho_mean: float, pI_mean: float, conc: floa
 
 def uncertainty():
     opener(
-        "Chapter 9 of 10 · Measure",
+        "Chapter 10 of 11 · Measure",
         "How much of this do we actually know?",
         "Every input so far was a single number, and none of them deserves that confidence. Carry distributions instead and "
         "two things show up that point estimates hide.",
@@ -567,7 +689,7 @@ def uncertainty():
         f"about {spread['lambda0_only']:.1f} come from your uncertainty about λ₀ alone and {spread['without_lambda0']:.1f} from everything else. "
         "Set the λ₀ slider to 0 to see what the model itself actually claims."
     )
-    next_chapter("Chapter 10 · Your turn", go("challenge"))
+    next_chapter("Chapter 11 · Your turn", go("challenge"))
 
 
 # ================================================================ 10. Challenge
@@ -594,7 +716,7 @@ def _best_allocation(base_rate: float, budget: int, step: int = 5) -> tuple[dict
 
 def challenge():
     opener(
-        "Chapter 10 of 10 · Play",
+        "Chapter 11 of 11 · Play",
         "Your turn: buy down the hazard",
         f"You have <b>{BUDGET} points</b> of effort and a menu of interventions with different prices. Spend them however you like. "
         "The goal is simple: cut the hazard as far as you can.",
