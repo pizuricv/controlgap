@@ -1,0 +1,119 @@
+# ControlGap
+
+[![tests](https://github.com/pizuricv/controlgap/actions/workflows/tests.yml/badge.svg)](https://github.com/pizuricv/controlgap/actions/workflows/tests.yml)
+
+**The AI Drake Equation, as code.**
+
+ControlGap implements the measurement architecture from the paper
+[*The AI Drake Equation: when does AI capability become consequential power?*](paper/ai-drake-equation-v4.md).
+
+The thesis is that capability alone does not determine catastrophic AI risk.
+Risk emerges when capability becomes *consequential power*: capability that is
+accessible, able to act and connected to systems that matter, faster than we
+can detect, stop, contain and recover from its failures.
+
+One scenario-specific hazard model carries this, read in two ways:
+
+- **As a probability.** `P(D_T) = 1 − exp(−∫ Σ_s λ_s dt)`, with
+  `λ_s = λ₀ · C^θ · A^θ · O^θ · X^θ · M^θ · V · p_I`. Absolute probabilities are not
+  currently identifiable: for fixed, plausible inputs they range from 0.04% to 33%.
+- **As a trend.** The **Control Gap Index**, `CGI_s(t) = ln[λ_s(t) / λ_s(t₀)]`, in
+  which the unknown scale cancels. It measures whether consequential capability
+  is growing faster than control, and it can be tracked today.
+
+This is a research programme and a monitoring architecture, not a prediction engine.
+
+## Install
+
+```bash
+git clone https://github.com/pizuricv/controlgap && cd controlgap
+pip install -e ".[dev]"     # not yet on PyPI
+```
+
+## Quickstart
+
+```python
+import numpy as np
+import controlgap as cg
+
+# Section 12: one scenario, illustrative values
+s = cg.Scenario("illustrative", C=0.20, A=0.70, O=0.50, X=0.60,
+                effectiveness=(0.6, 0.5, 0.5), rho=0.1, p_I=0.5)
+s.V                                  # 0.19, residual vulnerability
+s.factor                             # 0.0040, which is NOT a probability
+s.probability([0.01, 0.1, 1, 10], T=10)   # 0.04%, 0.40%, 3.9%, 33%
+
+# Section 15: the dashboard. K grows 26%/yr, Γ grows 6%/yr
+t = np.arange(0, 6)
+cgi = cg.control_gap_index(K=1.262 ** t, Gamma=1.06 ** t)
+cg.cgi_slope(t, cgi)                 # +0.17 per year
+cg.hazard_growth(0.174)              # hazard growing ~19% per year
+```
+
+Monte Carlo with correlated indices (Section 10):
+
+```python
+from controlgap.mc import MCConfig, simulate
+
+simulate(MCConfig(correlation=0.0)).summary()   # median 0.22%, mean 0.94%
+simulate(MCConfig(correlation=0.6)).summary()   # median 0.23%, mean 1.22%
+```
+
+## Play with it
+
+```bash
+pip install -e ".[app]"
+streamlit run app/app.py
+```
+
+An explorable version of the paper. Pick a scenario, move the sliders, and each tab explains one idea and suggests what to try:
+
+- **Start here**: the equation with your live numbers, and how the chain shrinks the hazard.
+- **Probability**: why there is no headline number. The answer depends on λ₀.
+- **Defences**: the common-mode floor, and scoring a near-miss.
+- **Levers**: where a 10% improvement pays off most.
+- **What if**: apply model advances, government action and open-weight release, and see which terms they move.
+- **Control Gap Index**: set yearly trends and see whether capability is outrunning control.
+- **Monte Carlo**: correlated uncertainty, and how much of the spread is assumed.
+
+Every value is illustrative. The defaults reproduce the paper's worked example.
+
+There is also a notebook tour, [`notebooks/controlgap_tour.ipynb`](notebooks/controlgap_tour.ipynb), which walks through
+the paper section by section. Rebuild it with `python notebooks/build_notebook.py`.
+
+## Modules
+
+| Module | Paper | Contents |
+|---|---|---|
+| `controlgap.hazard` | §4–6, §8 | Five indices including propensity `M`, residual vulnerability with a common-mode floor, the escalation–recovery race, Specifications I and II, capability coupling, the vector form `cᵀWx`, `P(D_T)` |
+| `controlgap.cgi` | §7 | `K`, `Γ`, the Control Gap Index, its split into per-term contributions, its slope and the implied hazard growth |
+| `controlgap.mc` | §10 | Gaussian-copula sampling of the indices; averages probabilities, not hazards; splits the spread into the part assumed through λ₀ and the rest |
+| `controlgap.precursors` | §9 | Estimators for `e_ℓ`, `ρ` and the race rates from red-team and incident counts; Poisson fit of the elasticities `θ`; ASP-style conditional scoring of a near-miss |
+| `controlgap.levers` | §13–14 | A catalogue of real-world drivers (model advances, governments, open weights) and the terms each acts on. Effect sizes are placeholders |
+| `controlgap.plots` | Figures 1–5 | Regenerates every figure in the paper from the model code |
+
+## Reproduce the paper's figures
+
+```bash
+python -m controlgap.plots paper/figures
+```
+
+## Tests
+
+```bash
+pytest
+```
+
+The tests pin the numbers quoted in the paper: `V = 0.19`, the 0.04%–33% table,
+the dashboard's +0.17 slope, the Monte Carlo summary and the spread decomposition.
+They also run the app headlessly.
+
+## Status
+
+A research programme and a monitoring architecture, not a prediction engine. The functional forms are hypotheses,
+the example values are illustrative, and the framework is more mature for misuse scenarios than for loss of control.
+Issues and pull requests are welcome, especially real indicator data for any of the terms.
+
+## Licence
+
+Code: MIT. The paper in `paper/` is © Veselin Pizurica.

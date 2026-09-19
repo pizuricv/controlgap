@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software or the framework, please cite the paper."
+title: "ControlGap: the AI Drake Equation, as code"
+authors:
+  - family-names: Pizurica
+    given-names: Veselin
+version: 0.1.0
+date-released: 2026-09-19
+license: MIT
+repository-code: "https://github.com/pizuricv/controlgap"
+preferred-citation:
+  type: report
+  title: "The AI Drake Equation: when does AI capability become consequential power?"
+  authors:
+    - family-names: Pizurica
+      given-names: Veselin
+  year: 2026
+  notes: "Draft v4"
+  url: "https://github.com/pizuricv/controlgap/blob/main/paper/ai-drake-equation-v4.md"
