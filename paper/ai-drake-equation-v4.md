@@ -82,6 +82,7 @@ None of the individual ingredients is new.
 - **Drake-style models under uncertainty.** Sandberg, Drexler and Ord (2018) showed that propagating *distributions* through the Drake equation, rather than multiplying point estimates, changes its conclusion qualitatively. Section 10 takes the same lesson.
 - **The multiple-stage fallacy.** Yudkowsky (2016) named a failure mode, illustrated by Silver's (2015) staged estimate of a Trump nomination. Conjunctive chains bias estimates downward when each stage is shaded down independently and correlations between stages are ignored. Any Drake-style model is exposed to this. Section 10 addresses it directly.
 - **Probabilistic risk assessment (PRA).** Nuclear safety has decomposed rare, never-observed catastrophes into event trees and fault trees since the Reactor Safety Study (WASH-1400, 1975). After the Lewis review (1978) and Three Mile Island, the NRC established the Accident Sequence Precursor (ASP) programme in 1979. ASP scores observed precursor events by their *conditional core-damage probability*. Our capability → access → agency → exposure → trigger → control-failure chain is an event tree, and our precursor ladder (Section 9) is a direct analogue of ASP. Kaplan and Garrick (1981) supply the underlying definition of risk as a set of (scenario, likelihood, consequence) triplets.
+- **Incident collection.** The AI Incident Database, the OECD's AI Incidents Monitor and the MIT AI Risk Repository index AI harms at scale and classify them by cause and severity. They are the raw material a precursor programme would need; Section 9.1 describes what they would have to add to become one.
 - **PRA for frontier AI.** Koessler and Schuett (2023) review risk-assessment techniques from safety-critical industries for AGI developers. Wisakanto et al. (2025) adapt PRA to AI systems. Our contribution is complementary: a compact hazard specification and a trend index, rather than a full assessment methodology.
 - **Barrier models.** Bow-tie analysis and Reason's "Swiss cheese" model (1990) describe layered barriers between a hazard and its consequence. Our residual-vulnerability term is a quantitative bow-tie with correlated holes.
 - **Reliability engineering and survival analysis.** We use:
@@ -90,7 +91,7 @@ None of the individual ingredients is new.
   - common-cause failure modelling. Fleming's (1975) beta-factor model is the classic reference, though our form differs (Section 6.2).
 - **Adaptive adversaries.** Cox (2008) shows why "threat × vulnerability × consequence" fails when the attacker adapts to defences. This objection applies to any multiplicative model with an intelligent adversary, including one where the adversary is the AI system itself. We return to it in Sections 6.2 and 10.
 - **Systems safety.** Leveson (2011) and Perrow (1984) argue that linear chain-of-events models miss accidents that emerge from interactions in tightly coupled systems. We take this seriously for our fourth scenario (Section 16).
-- **Thresholds in practice.** Frontier-developer safety frameworks, and Koessler, Schuett and Anderljung (2024) on risk thresholds, are threshold models in all but name. Our Specification II (Section 6.5) formalises them.
+- **Thresholds in practice.** Frontier-developer safety frameworks — Anthropic's Responsible Scaling Policy, OpenAI's Preparedness Framework, Google DeepMind's Frontier Safety Framework — and Koessler, Schuett and Anderljung (2024) on risk thresholds are threshold models in all but name: each defines capability levels above which specified mitigations become mandatory. Our Specification II (Section 6.5) formalises that structure, and makes the choice between it and a power law an empirical question rather than a drafting convention.
 - **Scenario taxonomies and forecasting.** Relevant work includes:
   - Hendrycks, Mazeika and Woodside (2023) on catastrophic-risk sources;
   - Kasirzadeh (2024) on decisive versus accumulative risk;
@@ -418,7 +419,11 @@ PRA faced the same problem for reactor core damage. The answer was **precursors*
 3. reported incidents in deployment (partial passage through the chain);
 4. near-misses where a late control layer stopped an event (the chain nearly completed).
 
-If precursor rates are recorded consistently, for example through the incident reporting now mandatory for systemic-risk models in the EU, they constrain:
+**Most of this collection already exists.** Three public efforts index AI incidents at scale: the [AI Incident Database](https://incidentdatabase.ai/), the [OECD AI Incidents Monitor](https://oecd.ai/en/incidents), and the [MIT AI Risk Repository](https://airisk.mit.edu/) with its incident tracker, together holding tens of thousands of entries and classifying them by risk, cause, harm and severity. The EU's incident-reporting duty for systemic-risk models (Article 55) will add a mandatory channel.
+
+What none of them does is the thing the ASP programme does, and the thing this framework needs. They record *what happened*; a precursor programme scores *how close it came*, by asking what conditional probability the event would have completed. That is a per-event judgement against an explicit model, and it is the missing layer. The gap between these databases and a calibration set is not collection, which is solved, but scoring — and the scoring requires exactly the chain this paper specifies. Section 9.2 lists what each score would have to record.
+
+If precursor rates are recorded consistently, they constrain:
 
 - the conditional terms of Section 5;
 - the layer effectivenesses $e_\ell$;
@@ -642,6 +647,8 @@ A per-scenario dashboard would report the indices behind $K_s$ and $\Gamma_s$ as
 - **Redefining an index breaks the comparison.** The Control Gap Index is invariant to rescaling an index but not to shifting its zero (Section 7). Capability is the *share* of a required capability set, so adding a newly recognised capability to that set is a shift, not a rescale — and evaluation suites are revised yearly. In practice the index moves whenever the instrument changes, so a reported series must state which definition each year used.
 - **The indices depend on immature evaluation suites.** Those suites are also vulnerable to gaming, and the capability index is blind to capability beyond sufficiency.
 
+One route to the adaptive-adversary objection is worth naming, because this paper cannot answer it analytically. Cox's criticism is that a multiplicative model fails when the attacker reallocates against whichever term you strengthened, and a hazard model with fixed indices cannot show that happening. Strategic simulation can: Avin and colleagues' *Intelligence Rising* has run AI-governance wargames with decision-makers and drawn strategic findings from [43 sessions](https://www.sciencedirect.com/science/article/pii/S0016328725000254). Playing an adversary against this model's own defences, and seeing which terms they route around, would test the multiplicative form in the one way its critics say matters.
+
 The framework should be read as a research programme and a monitoring architecture, not as a prediction engine.
 
 ## 17. Conclusion
@@ -682,6 +689,7 @@ That is the variable worth watching.
 ### References
 
 - Bengio, Y. et al. (2026). [*International AI Safety Report 2026.*](https://internationalaisafetyreport.org/publication/international-ai-safety-report-2026) Published 3 February 2026.
+- Avin, S. et al. (2025). [Strategic insights from simulation gaming of AI race dynamics.](https://www.sciencedirect.com/science/article/pii/S0016328725000254) *Futures*.
 - Carlsmith, J. (2021). [*Is Power-Seeking AI an Existential Risk?*](https://arxiv.org/abs/2206.13353) Open Philanthropy report; arXiv:2206.13353 (2022).
 - Cooke, R. M. (1991). [*Experts in Uncertainty: Opinion and Subjective Probability in Science.*](https://global.oup.com/academic/product/experts-in-uncertainty-9780195064650) Oxford University Press.
 - Cox, D. R. (1972). [Regression models and life-tables.](https://doi.org/10.1111/j.2517-6161.1972.tb00899.x) *Journal of the Royal Statistical Society B*, 34(2), 187–220.
@@ -691,6 +699,7 @@ That is the variable worth watching.
 - Fleming, K. N. (1975). *A Reliability Model for Common Mode Failures in Redundant Safety Systems.* Report GA-A13284, General Atomic Company.
 - Vesely, W. E. (1977). Estimating common-cause failure probabilities in reliability and risk analyses: Marshall–Olkin specialisations. In *Nuclear Systems Reliability Engineering and Risk Assessment*, SIAM.
 - Hendrycks, D., Mazeika, M. & Woodside, T. (2023). [An overview of catastrophic AI risks.](https://arxiv.org/abs/2306.12001) arXiv:2306.12001.
+- **Incident collections.** [AI Incident Database](https://incidentdatabase.ai/) (Responsible AI Collaborative); [OECD AI Incidents Monitor](https://oecd.ai/en/incidents); [MIT AI Risk Repository and incident tracker](https://airisk.mit.edu/).
 - Kaplan, S. & Garrick, B. J. (1981). [On the quantitative definition of risk.](https://doi.org/10.1111/j.1539-6924.1981.tb01350.x) *Risk Analysis*, 1(1), 11–27.
 - Karger, E. et al. (2023). [*Forecasting Existential Risk: Evidence from a Long-Run Forecasting Tournament.*](https://forecastingresearch.org/research/existential-risk-persuasion-tournament) Forecasting Research Institute.
 - Kasirzadeh, A. (2024). [Two types of AI existential risk: decisive and accumulative.](https://arxiv.org/abs/2401.07836) arXiv:2401.07836; *Philosophical Studies* (2025).
