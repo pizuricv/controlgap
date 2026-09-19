@@ -70,8 +70,9 @@ def incident_cards(on_start: bool = False):
     for col, incident in zip(st.columns(len(INCIDENTS), gap="medium"), INCIDENTS):
         active = incident.key == selected and not on_start
         with col.container(key=f"card_{'active' if active else incident.key}"):
+            icon = "\u26a0\ufe0f" if incident.rung >= 3 else "\U0001f9ea"  # kept out of the f-string: 3.10 forbids backslashes there
             st.markdown(
-                f'<div class="cg-card-icon">{"\u26a0\ufe0f" if incident.rung >= 3 else "\U0001f9ea"}</div>'
+                f'<div class="cg-card-icon">{icon}</div>'
                 f'<div class="cg-card-name">{RUNGS[incident.rung]}</div>'
                 f'<div class="cg-card-body"><b>{incident.title}</b><br>{incident.when}</div>',
                 unsafe_allow_html=True,

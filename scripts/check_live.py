@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import sys
 
-CHAPTERS = ["", "chain", "missing-number", "layers", "race", "levers", "what-if", "control-gap", "uncertainty", "challenge"]
+CHAPTERS = ["", "chain", "missing-number", "layers", "race", "precursors", "levers", "what-if", "control-gap", "uncertainty", "challenge"]
 
 
 def app_frame(page):
