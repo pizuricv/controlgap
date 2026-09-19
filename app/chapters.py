@@ -293,11 +293,12 @@ def lambda0():
               title="Baseline rate λ₀ (events / yr)")  # fmt: skip
     y = alt.Y("P:Q", scale=alt.Scale(type="log", domain=[1e-6, 1], clamp=True),
               axis=alt.Axis(values=[1, 0.1, 0.01, 0.001, 1e-4, 1e-5, 1e-6], format="~%"), title=f"P(catastrophe), {T} yr (log)")  # fmt: skip
-    colour = alt.Color("Chain:N", scale=alt.Scale(range=[S1, S2]), legend=alt.Legend(orient="top", title=None, labelLimit=0))
+    names = ["as you set it"] + ([f"{halve.lower()} halved"] if key else [])
+    colour = alt.Color("Chain:N", scale=alt.Scale(domain=names, range=[S1, S3]), legend=alt.Legend(orient="top", title=None, labelLimit=0))
     lines = alt.Chart(df).mark_line(strokeWidth=2).encode(x=x, y=y, color=colour,
                                                           tooltip=["Chain", alt.Tooltip("lambda0:Q", title="λ₀", format=".3g"), alt.Tooltip("P:Q", format=".2%")])  # fmt: skip
     point = pd.DataFrame({"lambda0": [lam0], "P": [float(s.probability(lam0, T))], "Chain": ["as you set it"]})
-    mark = alt.Chart(point).mark_point(size=150, filled=True, color=S3, opacity=1).encode(x=x, y=y)
+    mark = alt.Chart(point).mark_point(size=150, filled=True, color=S1, stroke="white", strokeWidth=2, opacity=1).encode(x=x, y=y)
     right.altair_chart((lines + mark).properties(autosize=FIT, height=340), width="stretch")
     right.caption("λ₀ is the rate at maximum indices, with no defences and certain escalation. The dot is your setting.")
 
@@ -863,7 +864,7 @@ def _world_events(game: dict) -> dict:
     return {card[1]: 1.0} if card[1] and game["round"] >= 1 else {}, card
 
 
-def _advance(values: dict, years: int) -> dict:
+def _advance(values: dict, years: float) -> dict:
     """Let the world run forward, using the scenario's own growth rates."""
     out = dict(values)
     p = P()
@@ -878,22 +879,33 @@ def _advance(values: dict, years: int) -> dict:
 
 
 def _play_out(spend_by_round: dict, world: dict) -> float:
-    """Hazard in 2037, after four rounds of purchases against a world that keeps moving."""
-    values = flat()
-    bought: dict[str, float] = {}
+    """Cumulative hazard over 2026-37, which is what the paper integrates.
+
+    Scoring the 2037 endpoint alone cannot reward buying early: growth and the
+    levers are both multiplicative, so the final state is the same whenever you
+    bought. Summing the hazard over the decade does reward it, because an early
+    purchase holds the rate down for more of the years in between.
+    """
+    have: dict[str, float] = {}
+    total = 0.0
     for index, _ in enumerate(ROUNDS):
-        bought |= spend_by_round.get(index, {})
+        have |= spend_by_round.get(index, {})
         if index >= 1:
-            bought |= world
-        values = apply_levers(_advance(flat(), 3 * (index + 1)), bought)
-    return rate(scenario(**values))
+            have |= world
+        mid = apply_levers(_advance(flat(), 3 * index + 1.5), have)  # the block's midpoint
+        total += 3 * rate(scenario(**mid))
+    return total
 
 
-def _efficiency(spend_by_round: dict, world: dict, name: str, step: float = 0.2) -> float:
-    """Hazard reduction per point, for one more slice of this lever right now."""
+def _efficiency(spend_by_round: dict, world: dict, name: str, this_round: int, step: float = 0.2) -> float:
+    """Hazard reduction per point for one more slice of this lever, bought now.
+
+    "Now" is the round being played, not the last one: buying in 2026 holds the
+    rate down for a decade, and the number has to say so.
+    """
     base = _play_out(spend_by_round, world)
     trial = {k: dict(v) for k, v in spend_by_round.items()}
-    current = trial.setdefault(len(ROUNDS) - 1, {})
+    current = trial.setdefault(this_round, {})
     already = max((r.get(name, 0.0) for r in spend_by_round.values()), default=0.0)
     if already >= 1.0:
         return 0.0
@@ -960,7 +972,7 @@ def challenge():
             continue
         share = col.slider(f"{lever.name} · {COST[lever.name]} pts", 0, room, 0, 10, format="%d%%", key=f"g{game['round']}_{lever.name}", help=lever.description)
         picks[lever.name] = already + share / 100
-        eff = _efficiency(game["spent"], world, lever.name)
+        eff = _efficiency(game["spent"], world, lever.name, game["round"])
         capped_by_rho = float(walls.effective_rho) / float(walls.V) > 0.5 and set(lever.effects) <= {"e0", "e1", "e2"}
         col.caption(f"{share / 100 * COST[lever.name]:.0f} pts · {eff:.1f}% per point" + (" · ρ caps this" if capped_by_rho else ""))
 
@@ -1062,6 +1074,9 @@ def _greedy_plan(world: dict, step: float = 0.2):
 def _diagnose(yours: dict, theirs: dict) -> list[str]:
     """Two or three sentences about the difference, not just the delta."""
     notes = []
+    your_spend = sum(v * COST[k] for k, v in yours.items())
+    if your_spend < BUDGET * 0.6:
+        notes.append(f"- You left **{BUDGET - your_spend:.0f} of {BUDGET} points unspent**. Before anything else: effort you never spent bought you nothing.")
     layers = {"AI-powered defence", "Mandatory evaluations and incident reporting"}
     your_layers = sum(yours.get(k, 0) * COST[k] for k in layers)
     their_layers = sum(theirs.get(k, 0) * COST[k] for k in layers)

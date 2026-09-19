@@ -13,9 +13,17 @@ ui.init()
 dark = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
 st.markdown(ui.CSS.replace("__BG__", "#15171b" if dark else "#ffffff"), unsafe_allow_html=True)
 
-read = st.session_state.get("visited", set())
+read = set(st.session_state.get("visited", set()))
+here = (getattr(st.context, "url", None) or "").rstrip("/").split("/")[-1]  # tick the page being opened, not one render late
 ORDER = {"start": 1, "chain": 2, "lambda0": 3, "layers": 4, "race": 5, "precursors": 6,
          "levers": 7, "whatif": 8, "gap": 9, "uncertainty": 10, "challenge": 11}
+
+
+URL_PATH = {"": "start", "chain": "chain", "missing-number": "lambda0", "layers": "layers", "race": "race",
+            "precursors": "precursors", "levers": "levers", "what-if": "whatif", "control-gap": "gap",
+            "uncertainty": "uncertainty", "challenge": "challenge"}
+if here in URL_PATH:
+    read.add(ORDER[URL_PATH[here]])
 
 
 def title(key: str, text: str) -> str:

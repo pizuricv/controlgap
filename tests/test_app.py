@@ -342,3 +342,34 @@ def test_the_last_chapter_is_not_mistaken_for_the_first():
     sidebar = " ".join(m.value for m in at.sidebar.markdown)
     assert "Chain × defences" in sidebar
     assert "appear here from chapter 2" not in " ".join(c.value for c in at.sidebar.caption)
+
+
+def _bare_session():
+    """The helpers read st.session_state, which AppTest does not keep alive between runs."""
+    import streamlit as st
+
+    import ui
+
+    for key, value in [("preset", ui.FIRST), ("gated", False), ("C0", 0.5), ("k", 15.0)]:
+        st.session_state[key] = value
+    st.session_state["P"] = ui.defaults(ui.FIRST)
+
+
+def test_buying_early_beats_buying_late():
+    """The four-round premise only means something if timing changes the score."""
+    import chapters
+
+    _bare_session()
+    early = chapters._play_out({0: {"Alignment progress": 1.0}}, {})
+    late = chapters._play_out({3: {"Alignment progress": 1.0}}, {})
+    nothing = chapters._play_out({}, {})
+    assert early < late < nothing, (early, late, nothing)
+    assert chapters._efficiency({}, {}, "Alignment progress", 0) > chapters._efficiency({}, {}, "Alignment progress", 3)
+
+
+def test_a_shared_link_starts_the_tour_rather_than_the_last_chapter():
+    import ui
+
+    _bare_session()
+    link = ui.share_link()
+    assert "/challenge" not in link and "?scenario=" in link

@@ -111,7 +111,7 @@ CSS = """
 /* Sticky result strip */
 [data-testid="stLayoutWrapper"]:has(> .st-key-sticky) {position: sticky; top: 3.6rem; z-index: 90;}
 .st-key-sticky {background: __BG__; border: 1px solid rgba(128,128,128,.28); border-left: 4px solid #2a78d6;
-                border-radius: .5rem; padding: .55rem 1rem .6rem; box-shadow: 0 6px 16px -10px rgba(0,0,0,.5);}
+                border-radius: .5rem; padding: .55rem 1rem .6rem; margin-bottom: .9rem; box-shadow: 0 6px 16px -10px rgba(0,0,0,.5);}
 .cg-strip {display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.5rem;}
 .cg-strip-num {font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums;}
 .cg-chip {font-size: .85rem; font-weight: 600; padding: .1rem .6rem; border-radius: 1rem; background: rgba(128,128,128,.16);}
@@ -200,7 +200,9 @@ def share_link() -> str:
     preset = PRESETS[st.session_state.preset]
     changed = {k: v for k, v in P().items() if k in preset and v != preset[k]}
     token = base64.urlsafe_b64encode(json.dumps(changed, separators=(",", ":")).encode()).decode().rstrip("=")
-    base = (getattr(st.context, "url", None) or "https://controlgap.streamlit.app").split("?")[0]
+    url = (getattr(st.context, "url", None) or "https://controlgap.streamlit.app").split("?")[0]
+    parts = url.split("/")
+    base = "/".join(parts[:3]) if len(parts) > 3 else url  # the root, not whichever chapter you are on
     return f"{base}?scenario={quote(st.session_state.preset)}" + (f"&tweak={token}" if changed else "")
 
 
