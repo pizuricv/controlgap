@@ -114,6 +114,13 @@ A research programme and a monitoring architecture, not a prediction engine. The
 the example values are illustrative, and the framework is more mature for misuse scenarios than for loss of control.
 Issues and pull requests are welcome, especially real indicator data for any of the terms.
 
-## Licence
+## Free for everyone
 
-Code: MIT. The paper in `paper/` is © Veselin Pizurica.
+Anyone can use ControlGap, for any purpose, including commercial use, teaching, policy work and building products on top of it.
+You do not need to ask.
+
+- **Code**: [MIT](LICENSE). Use it, change it, ship it. Keep the copyright notice.
+- **Paper and figures**: [CC BY 4.0](paper/LICENSE.md). Copy, translate, adapt and republish them. Credit the author.
+
+If you use the framework in your own work, please cite it. [`CITATION.cff`](CITATION.cff) has the details, and GitHub's
+"Cite this repository" button will format it for you.

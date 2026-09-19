@@ -7,6 +7,7 @@ authors:
 version: 0.1.0
 date-released: 2026-09-19
 license: MIT
+license-url: "https://github.com/pizuricv/controlgap/blob/main/LICENSE"
 repository-code: "https://github.com/pizuricv/controlgap"
 preferred-citation:
   type: report

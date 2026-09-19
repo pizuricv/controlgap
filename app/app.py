@@ -274,7 +274,7 @@ Then ask what changes it: *Levers* shows where effort pays off, and *What if* ap
 | **CGI** | Control Gap Index: the log of how much the hazard has changed since the reference year. Its slope is the signal |
 """
         )
-    st.caption(f"Every value in this app is illustrative. The model cannot give a trustworthy absolute probability, and says so.  ·  [Read the paper]({PAPER})")
+    st.caption(f"Every value in this app is illustrative. The model cannot give a trustworthy absolute probability, and says so.  ·  [Read the paper]({PAPER})  ·  Free for everyone to use: code MIT, paper CC BY 4.0.")
 
 # ---------------------------------------------------------------- probability
 with tab_p:

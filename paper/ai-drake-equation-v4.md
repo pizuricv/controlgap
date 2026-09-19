@@ -2,7 +2,7 @@
 
 ## When does AI capability become consequential power?
 
-**Veselin Pizurica** · Draft v4 · September 2026
+**Veselin Pizurica** · Draft v4 · September 2026 · Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
 ---
 
