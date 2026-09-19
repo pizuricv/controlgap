@@ -336,11 +336,12 @@ def focus(name: str, where=None):
 
 
 def verdict_of(slope: float) -> tuple[str, str]:
+    """The verdict always names the thing it depends on: these growth rates, which the reader set."""
     if slope > 0.005:
-        return "▲ Consequential capability is outrunning control", f"At this pace the hazard doubles about every {np.log(2) / slope:.0f} years."
+        return "▲ On these growth rates, consequential capability is outrunning control", f"At this pace the hazard would double about every {np.log(2) / slope:.0f} years."
     if slope < -0.005:
-        return "▼ Control is catching up", f"At this pace the hazard halves about every {np.log(2) / -slope:.0f} years."
-    return "■ Capability and control are in balance", ""
+        return "▼ On these growth rates, control is catching up", f"At this pace the hazard would halve about every {np.log(2) / -slope:.0f} years."
+    return "■ On these growth rates, the two sides are in balance", ""
 
 
 def hero(slope: float, k_growth: float, gamma_growth: float, horizon: int):
@@ -482,17 +483,18 @@ def sidebar_readout() -> None:
     else:
         s = scenario()
         level = rate(s) / rate(shipped())
-        _, _, _, slope, _, _ = trend()
-        verdict, _ = verdict_of(slope)
-        sb.markdown(
-            f'<div class="cg-read">'
-            f'<div class="r"><span>Chain \u00d7 defences</span><b>{num(s.factor, 5)}</b></div>'
-            f'<div class="r"><span>Versus as shipped</span><b>{ratio_words(level).replace(" than", "").replace("about the same as", "same")}</b></div>'
-            f'<div class="r"><span>Hazard trend</span><b>{cg.hazard_growth(slope):+.0%}/yr</b></div>'
-            f"</div>",
-            unsafe_allow_html=True,
-        )
-        sb.caption(verdict)
+        rows = [
+            f'<div class="r"><span>Chain \u00d7 defences</span><b>{num(s.factor, 5)}</b></div>',
+            f'<div class="r"><span>Versus as shipped</span><b>{ratio_words(level).replace(" than", "").replace("about the same as", "same")}</b></div>',
+        ]
+        # the trend depends on growth rates the reader has not seen yet, so it waits for chapter 9
+        met_the_trend = 9 in st.session_state.get("visited", set())
+        if met_the_trend:
+            _, _, _, slope, _, _ = trend()
+            rows.append(f'<div class="r"><span>Hazard trend</span><b>{cg.hazard_growth(slope):+.0%}/yr</b></div>')
+        sb.markdown(f'<div class="cg-read">{"".join(rows)}</div>', unsafe_allow_html=True)
+        if met_the_trend:
+            sb.caption(verdict_of(slope)[0])
 
     changed = [NAMES.get(k, k) for k in KEYS + GROWTH_KEYS if k in preset and P().get(k) != preset[k]]
     if changed:

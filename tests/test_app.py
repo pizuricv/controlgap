@@ -128,15 +128,27 @@ def test_whatif_strip_and_open_weights():
 
 def test_control_gap_slope_matches_the_paper_dashboard():
     at = app("gap")
-    assert metric(at, "Implied hazard growth") == "+24% / yr"
+    banner = next(m.value for m in at.markdown if 'class="cg-hero"' in m.value)
+    assert "+24%" in banner
+    assert "On these growth rates" in banner, "the verdict must name what it depends on"
+    assert metric(at, "CGI slope") == "+0.218"
     s = sliders(at)
     for name in ("Detection (points)", "Intervention (points)", "Containment (points)"):
         s[name].set_value(3.0)
     s["Recovery time (%)"].set_value(-20)
     s["Episodes ν"].set_value(-10)
     run(at)
-    assert float(metric(at, "Implied hazard growth").rstrip("% / yr")) < 0
-    assert at.success
+    assert float(metric(at, "CGI slope")) < 0
+
+
+def test_the_sidebar_asserts_no_trend_before_chapter_nine():
+    at = app("chain")
+    sidebar = " ".join(m.value for m in at.sidebar.markdown)
+    assert "Chain × defences" in sidebar
+    assert "Hazard trend" not in sidebar, "the trend depends on sliders the reader has not seen"
+    assert not any("outrunning control" in c.value for c in at.sidebar.caption)
+    at = app("gap")
+    assert "Hazard trend" in " ".join(m.value for m in at.sidebar.markdown)
 
 
 def test_the_game_runs_four_rounds_against_a_moving_world():

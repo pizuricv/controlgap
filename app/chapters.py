@@ -711,14 +711,9 @@ def gap():
 
     t, parts, total, slope, k_growth, gamma_growth = trend()
     with c:
-        focus("cgi").metric("Implied hazard growth", f"{cg.hazard_growth(slope):+.0%} / yr", f"CGI slope {slope:+.3f}", delta_color="off", delta_arrow="off")
-        st.write("")
-        if slope > 0.005:
-            st.error("Consequential capability is outrunning control.", icon=":material/trending_up:")
-        elif slope < -0.005:
-            st.success("Control is catching up.", icon=":material/trending_down:")
-        else:
-            st.info("The two sides are in balance.", icon=":material/trending_flat:")
+        st.metric("CGI slope", f"{slope:+.3f}", "per year", delta_color="off", delta_arrow="off",
+                  help="The banner above reads the same slope as a growth rate.")  # fmt: skip
+        st.caption("Every number here follows from the growth rates you just set. Set them all to zero and the index is flat by construction.")
         capped = [k for k in "CAOXM" if min(p[k] * (1 + p[f'g{k}'] / 100) ** t[-1], 1.0) >= 1.0 and p[f"g{k}"] > 0]
         if capped:
             st.warning(f"{', '.join(capped)} hit the ceiling of 1 inside the horizon. After that only episode volume ν can still grow.", icon=":material/warning:")
