@@ -284,6 +284,7 @@ with tab_whatif:
          "Switch scenario in the sidebar. The same lever matters more or less depending on the scenario."],
         "§13 The open-weight question, §14 What levers act on which variables",
     )  # fmt: skip
+    headline = st.container(border=True)  # filled in below, so the result stays in view above the sliders
     strengths = {}
     for col, group in zip(st.columns(len(GROUPS)), GROUPS):
         col.markdown(f"**{group}**")
@@ -296,18 +297,28 @@ with tab_whatif:
     flat = {k: p[k] for k in KEYS[:-1]} | {"nu": 1.0}
     after = scenario(p, **apply_levers(flat, active))
     ratio = rate(after) / rate(s)
-    st.divider()
-    a, b, c = st.columns([1, 2, 2])
-    a.metric("Hazard changes by", f"×{ratio:.2f}", f"{ratio - 1:+.0%}", delta_color="inverse")
-    a.metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}")
+    solo = pd.DataFrame([{"Driver": k, "Change in hazard, %": (rate(scenario(p, **apply_levers(flat, {k: v}))) / rate(s) - 1) * 100} for k, v in active.items()])
     open_only = {k: v for k, v in active.items() if k.startswith("Open weights")}
-    if open_only:
-        net = rate(scenario(p, **apply_levers(flat, open_only))) / rate(s)
-        a.info(f"Open weights alone: hazard **{net - 1:+.0%}**. The sign depends on the scenario and on how strong the defensive side really is. The framework does not settle the question; it says which measurements would.")
+    with headline:
+        h = st.columns(4)
+        h[0].metric("Hazard changes by", f"×{ratio:.2f}", f"{ratio - 1:+.0%}", delta_color="inverse")
+        h[1].metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}", help="The log of the hazard ratio. Independent of λ₀.")
+        if open_only:
+            net = rate(scenario(p, **apply_levers(flat, open_only))) / rate(s)
+            h[2].metric("Open weights alone", f"{net - 1:+.0%}", help="The sign depends on the scenario and on how strong the defensive side really is. The framework does not settle the question; it says which measurements would.")
+        else:
+            h[2].metric("Open weights alone", "not applied")
+        if active:
+            top = solo.loc[solo["Change in hazard, %"].abs().idxmax()]
+            h[3].metric("Strongest driver", f"{top['Change in hazard, %']:+.0f}%", top["Driver"], delta_color="off")
+        else:
+            h[3].metric("Strongest driver", "none yet", "move a slider below", delta_color="off")
+
+    st.divider()
+    b, c = st.columns(2)
     if not active:
         b.info("Move a slider above to apply a driver.")
     else:
-        solo = pd.DataFrame([{"Driver": k, "Change in hazard, %": (rate(scenario(p, **apply_levers(flat, {k: v}))) / rate(s) - 1) * 100} for k, v in active.items()])
         solo["Effect"] = np.where(solo["Change in hazard, %"] >= 0, "raises hazard", "lowers hazard")
         b.markdown("**Each driver on its own**")
         b.altair_chart(alt.Chart(solo).mark_bar(cornerRadiusEnd=4, height=16).encode(
