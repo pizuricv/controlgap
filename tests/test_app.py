@@ -46,3 +46,18 @@ def test_what_if_and_presets():
     at.selectbox[0].set_value("Autonomous cyber operations")
     run(at)
     assert metric(at, "Residual vulnerability V") != "0.190"
+
+
+def test_intro_shows_once_and_can_be_reopened():
+    at = run(AppTest.from_file(APP))
+    assert at.session_state.intro_open and at.session_state.intro_step == 0
+    next(b for b in at.button if b.label == "Next").click()
+    run(at)
+    assert at.session_state.intro_step == 1
+    next(b for b in at.button if b.label == "Skip").click()
+    run(at)
+    assert not at.session_state.intro_open
+    assert not [b for b in at.button if b.label == "Next"]
+    next(b for b in at.button if b.label == "Show intro").click()
+    run(at)
+    assert at.session_state.intro_open and at.session_state.intro_step == 0

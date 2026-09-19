@@ -39,6 +39,88 @@ NAMES = {"nu": "Episodes ν", "C": "Capability C", "A": "Access A", "O": "Agency
 st.set_page_config(page_title="ControlGap", page_icon="🎛️", layout="wide")
 
 
+# ---------------------------------------------------------------- first-visit intro
+INTRO = [
+    ("The question", """
+People argue about one number: *the probability of AI catastrophe*. This app takes the question apart instead,
+the way Frank Drake did for alien civilisations.
+
+A capable AI system is not dangerous just by being capable. It becomes dangerous when that capability turns into
+**consequential power** faster than we can control it. So there are two sides:
+
+| Consequence side | Control side |
+|---|---|
+| Is it **capable** enough? | Do we **detect** it? |
+| Who can **access** it? | Can we **intervene**? |
+| Can it **act**? | Can we **contain** it? |
+| What can it **reach**? | Do our defences share a **weak spot**? |
+| Would anyone, or anything, **try**? | How fast do we **recover**? |
+"""),
+    ("The sidebar is your scenario", """
+Everything on the left describes **one scenario**.
+
+- Start by picking one under **Start from a scenario**, for example *Autonomous cyber operations*.
+- The sliders go from 0 to 1. Hover the **?** next to any of them to see what it means.
+- The four numbers at the top of the page update as you move them. The last one, the *combined factor*,
+  is everything multiplied together.
+
+You cannot break anything. Every value is illustrative, not a measurement.
+"""),
+    ("Two ways to read the result", """
+**1. How likely is it?** The honest answer is that nobody can know yet. To turn the factor into a probability you need a
+baseline rate, **λ₀**, and no catastrophe has happened to pin it down. The same inputs give anything from 0.04% to 33%.
+
+**2. Which way is it moving?** This one *can* be answered. Compare the hazard with a reference year and the unknown
+λ₀ cancels. What is left is the **Control Gap Index**: is consequential capability growing faster than control?
+
+That second question is the point of the whole framework.
+"""),
+    ("A route through the tabs", """
+Each tab teaches one idea, and each has a **Try this** box with two or three experiments.
+
+1. **Start here**: the equation, with your numbers in it.
+2. **Probability**: why there is no headline number.
+3. **Defences**: why better layers stop helping, and how to score a near-miss.
+4. **Levers**: where a 10% improvement pays off most.
+5. **What if**: model advances, governments and open weights as levers.
+6. **Control Gap Index**: is capability outrunning control?
+7. **Monte Carlo**: what uncertainty does to all of the above.
+
+You can reopen this introduction any time from the bottom of the sidebar.
+"""),
+]  # fmt: skip
+
+
+def close_intro():
+    st.session_state.intro_open = False
+
+
+@st.dialog("Welcome to ControlGap", width="large", on_dismiss=close_intro)
+def intro():
+    step = st.session_state.intro_step
+    title, body = INTRO[step]
+    st.progress((step + 1) / len(INTRO), text=f"{step + 1} of {len(INTRO)} · {title}")
+    st.markdown(body)
+    back, skip, _, forward = st.columns([1, 1, 3, 1.4])
+    if step > 0 and back.button("Back"):
+        st.session_state.intro_step -= 1
+        st.rerun()
+    if step < len(INTRO) - 1:
+        if skip.button("Skip"):
+            close_intro()
+            st.rerun()
+        if forward.button("Next", type="primary"):
+            st.session_state.intro_step += 1
+            st.rerun()
+    elif forward.button("Start exploring", type="primary"):
+        close_intro()
+        st.rerun()
+
+
+def open_intro():
+    st.session_state.intro_open, st.session_state.intro_step = True, 0
+
+
 # ---------------------------------------------------------------- sidebar
 def apply_preset():
     for key in KEYS:
@@ -73,6 +155,8 @@ def sidebar() -> dict:
         gated = st.toggle("Use a threshold gate for C", help="Some dangerous tasks may be impossible below a capability level and routine above it.")
         C0 = st.slider("Threshold C₀", 0.05, 0.95, 0.50, 0.05)
         k = st.slider("Steepness k", 1.0, 40.0, 15.0, 1.0)
+    sb.divider()
+    sb.button("Show intro", on_click=open_intro, width="stretch")
     return {**{key: st.session_state[key] for key in KEYS}, "nu": 1.0, "gated": gated, "C0": C0, "k": k}
 
 
@@ -109,8 +193,13 @@ def lesson(what: str, tries: list[str], section: str):
         st.markdown("**Try this**\n" + "\n".join(f"- {t}" for t in tries))
 
 
+if "intro_open" not in st.session_state:
+    open_intro()
+
 p = sidebar()
 s = scenario(p)
+if st.session_state.intro_open:
+    intro()
 
 st.title("ControlGap")
 st.markdown("##### When does AI capability become *consequential power*?  ·  The AI Drake Equation, as code")
