@@ -4,6 +4,8 @@
 
 **Veselin Pizurica** · Draft v4 · September 2026 · Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 
+*Every model in this paper is explorable at [controlgap.streamlit.app](https://controlgap.streamlit.app), and implemented in [github.com/pizuricv/controlgap](https://github.com/pizuricv/controlgap).*
+
 ---
 
 ### Abstract

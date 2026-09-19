@@ -671,6 +671,7 @@ def challenge():
         f"#### That's the tour\n\nThe model, the package and the paper are open, and free for anyone to use.\n\n"
         f"- **Paper** — [The AI Drake Equation]({PAPER}), CC BY 4.0\n"
         f"- **Code** — [{REPO.split('//')[1]}]({REPO}), MIT, `pip install -e .`\n"
+        f"- **Send it to someone** — [controlgap.streamlit.app](https://controlgap.streamlit.app)\n"
         f"- **Argue with it** — the functional forms are hypotheses and the framework is weakest exactly where it matters most, "
         f"on autonomous loss of control. Issues and pull requests welcome, especially real data for any of these terms."
     )

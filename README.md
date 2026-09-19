@@ -1,6 +1,9 @@
 # ControlGap
 
 [![tests](https://github.com/pizuricv/controlgap/actions/workflows/tests.yml/badge.svg)](https://github.com/pizuricv/controlgap/actions/workflows/tests.yml)
+[![app](https://img.shields.io/badge/try%20it-controlgap.streamlit.app-2a78d6)](https://controlgap.streamlit.app)
+[![code MIT](https://img.shields.io/badge/code-MIT-green)](LICENSE)
+[![paper CC BY 4.0](https://img.shields.io/badge/paper-CC%20BY%204.0-green)](paper/LICENSE.md)
 
 **The AI Drake Equation, as code.**
 
@@ -61,7 +64,7 @@ simulate(MCConfig(correlation=0.6)).summary()   # median 0.23%, mean 1.22%
 
 ## Try it
 
-**[Open the app](https://pizuricv-controlgap-appapp-deploy-ns3yua.streamlit.app/)** — ten short chapters that walk through the
+**[Open the app](https://controlgap.streamlit.app/)** — ten short chapters that walk through the
 paper, with every number live. Pick a scenario, move the sliders, and each chapter ends with what just happened and what to try next.
 
 | | |
@@ -95,23 +98,6 @@ never goes live.
 
 Streamlit Cloud usually redeploys within a minute of a push, but it will sometimes sit on a cached build. If a change has
 not appeared, use **Reboot app** in the app's ⋮ menu on [share.streamlit.io](https://share.streamlit.io). To check a
-deployment from the command line:
-
-```bash
-python scripts/check_live.py https://<your-app>.streamlit.app
-```
-
-It walks every chapter and checks that the scenario cards line up. Streamlit Cloud serves the app inside an iframe, so a
-check of the top-level page finds an empty wrapper — the script handles that.
-
-### Hosting it
-
-The app deploys as is to [Streamlit Community Cloud](https://share.streamlit.io) (free): choose this repository, the
-**`deploy`** branch and `app/app.py`. CI fast-forwards `deploy` only after the tests pass on `main`, so a broken commit
-never goes live.
-
-Streamlit Cloud usually redeploys within a minute of a push, but it will sometimes sit on a cached build. If a change has
-not appeared, use **Reboot app** in the app's menu on [share.streamlit.io](https://share.streamlit.io). To check a
 deployment from the command line:
 
 ```bash
