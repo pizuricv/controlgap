@@ -203,7 +203,7 @@ def _retired_test_challenge_spends_a_budget_and_refuses_to_overspend():
 def test_tiny_values_never_display_as_zero():
     at = app("chain")
     s = sliders(at)
-    for label in ("Capability C", "Access A", "Agency O", "Exposure X", "Propensity M"):
+    for label in ("Capability C", "Access A", "Agency O", "Exposure X", "Trigger M"):
         s[label].set_value(0.01)
     run(at)
     assert "× 10⁻" in next(m.value for m in at.sidebar.markdown if "Chain" in m.value)

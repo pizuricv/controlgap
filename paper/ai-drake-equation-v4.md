@@ -114,7 +114,8 @@ None of the individual ingredients is new.
 - autonomous loss of control;
 - AI-enabled biological misuse;
 - AI-enabled attack on critical infrastructure;
-- cascading failure across coupled automated systems.
+- cascading failure across coupled automated systems;
+- consequential action taken on a confidently wrong AI output.
 
 Define
 
@@ -144,7 +145,7 @@ $$
 
 where:
 
-- $M$ is the attempt: given the opportunity, the acting agent, human or AI, actually tries the harmful action;
+- $M$ is the trigger: given the opportunity, the thing that starts the chain actually happens. Usually that is an attempt, by the system or by a person; it can also be a confident error that a human acts on (Section 6.6);
 - $F$ is failure of the control layers;
 - $I$ is escalation beyond recovery, i.e. irreversibility.
 
@@ -174,11 +175,13 @@ The model mixes two kinds of quantity, and it is important to keep them apart.
 | $A_s$ | Access: breadth of actors who can obtain that capability | Open-weight availability, API gating, fine-tuning access, compute cost |
 | $O_s$ | Agency: ability to act within an episode | Tool access, permissions, persistence, delegation, run length |
 | $X_s$ | Exposure: consequential systems reachable in an episode | Integrations with finance, cloud, OT/ICS, labs, communications |
-| $M_s$ | Propensity: how readily the acting agent attempts the harmful action, given the opportunity | Autonomous: scheming, sandbagging and oversight-subversion evaluations; alignment stress tests. Misuse: threat intelligence; observed abuse rates per user |
+| $M_s$ | Trigger: how readily the chain actually starts, given the opportunity | Autonomous: scheming, sandbagging and oversight-subversion evaluations. Misuse: threat intelligence; abuse rates per user. Error: dangerous-error rates in evaluation, times the rate at which operators defer to them |
 
 Because $C_s$ is the *share* of a required capability set, capability beyond sufficiency does not register in it. This is deliberate. What matters for a given scenario is whether the capability is present, not how far it exceeds the requirement.
 
-Propensity is the term the International AI Safety Report 2026 places alongside capability and opportunity. Earlier drafts of this paper left it inside the scale constant $\kappa_s$, where progress or regress in alignment could never show up in the trend. Setting $M_s = 1$ is the worst case: the agent always tries.
+Propensity is the term the International AI Safety Report 2026 places alongside capability and opportunity. Earlier drafts of this paper left it inside the scale constant $\kappa_s$, where progress or regress in alignment could never show up in the trend. Setting $M_s = 1$ is the worst case: the chain always starts.
+
+We call $M$ the *trigger* rather than the *propensity* because propensity names only one of the ways a chain starts. Section 6.6 gives three.
 
 ### 6.2 Residual vulnerability, with correlated failures
 
@@ -281,8 +284,13 @@ Written per scenario, the structure separates the two pathways that are most oft
 - **Human misuse.** A human is the acting agent.
   - $M$ is the prevalence and intensity of malicious or reckless intent among those with access.
   - Agency $O$ still matters, because an agentic tool does more of the work for the person misusing it.
+- **Consequential error.** Nobody attempts anything. The system is wrong in a dangerous direction and a human acts on the output.
+  - $M$ factorises: $M_s = P(\text{dangerous error}) \times P(\text{the operator defers})$.
+  - Agency $O$ is typically *low* — the system may only have produced text — while exposure $X$ is whatever the deferring human can reach, which is often far more.
 
-Earlier drafts let $M$ *replace* $O$ in the misuse branch. Keeping both, in both branches, gives the two branches the same structure and gives alignment work a place in the model.
+Earlier drafts let $M$ *replace* $O$ in the misuse branch. Keeping both, in every branch, gives them the same structure and gives alignment work a place in the model.
+
+The third branch is not a refinement. Without it the framework has no slot for the failure mode that has actually occurred most often so far, and an analyst is forced to record "nobody intended harm" as $M = 1$, which inverts the term's meaning. It also carries a measurement advantage the other two lack: the deference factor is *automation bias*, which has been studied for decades in aviation, clinical decision support and process control, and reported as a rate. Where propensity in the autonomous branch has no established measurement, this branch has one already.
 
 Total hazard is the sum over all scenarios, including interaction scenarios (Section 4).
 
@@ -434,7 +442,7 @@ The second: **precursors must be observed.** A reactor does not hide its near-mi
 | Agency $O$ | Autonomy, permissions, persistence, tool access in deployed systems |
 | Coupling $g$ | Self-exfiltration, privilege-escalation and oversight-evasion evaluations, as a function of capability |
 | Exposure $X$ | Inventory of consequential integrations of capable agents |
-| Propensity $M$ | Autonomous: rates of scheming, sandbagging and oversight subversion in evaluations. Misuse: abuse rates per user; threat intelligence |
+| Trigger $M$ | Autonomous: rates of scheming, sandbagging and oversight subversion in evaluations. Misuse: abuse rates per user; threat intelligence. Error: the rate of dangerous-direction errors on scenario-relevant tasks, times the rate at which operators act on them unchecked — the latter is the automation-bias literature, and is the best-measured quantity anywhere in this table |
 | Defence layers $e_\ell$ | Detection, intervention and containment rates in red-team exercises; incident data |
 | Common-mode $\rho$ | Fraction of successful bypasses that defeat several layers at once |
 | Recovery $\tau_{\text{rec}}$ | Total incident-time at risk divided by the number of incidents recovered — **not** the mean time to restore among them (see below) |
@@ -581,7 +589,7 @@ The net effect is scenario-specific and cannot be read off the word "open." The 
 | Model release policy, API gating, know-your-customer | $A$ |
 | Permission models, tool sandboxing, human-in-the-loop requirements | $O$, $\nu$ |
 | Integration controls for critical infrastructure | $X$ |
-| Alignment training and propensity evaluations; for human actors, deterrence and attribution | $M$ |
+| Alignment training and propensity evaluations; for human actors, deterrence and attribution; for the error branch, provenance requirements, independent confirmation before consequential action, and training against automation bias | $M$ |
 | Monitoring, evaluations, layered safeguards | $e_\ell$ → $V$ |
 | Diverse, independent safeguards; separation of monitoring from the monitored system | $\rho$ → $V$ |
 | Incident response, isolation, backups, restoration drills | $\tau_{\text{rec}}$ → $p_I$ |
@@ -622,6 +630,7 @@ A per-scenario dashboard would report the indices behind $K_s$ and $\Gamma_s$ as
 - **Reflexivity.** Near-misses trigger regulation, which changes the hazard. A static calibration will drift.
 - **Precursor calibration assumes shared elasticities** between near-misses and catastrophes (Section 9.1).
 - **Precursors can be strategically censored.** A deceptive system suppresses its own near-misses, so precursor-based calibration is weakest in the scenario where it is needed most (Section 9.1).
+- **The error branch is new and least developed.** Section 6.6's third branch was added because a real precursor did not fit the other two. Its factorisation into error rate and deference rate is a hypothesis, and the two factors are unlikely to be independent: an operator's willingness to defer plausibly depends on how often the system has been wrong before.
 - **The framework is more mature for misuse than for loss of control.** Propensity is hard to measure, the coupling coefficients are unknown, and precursors may be censored. All three problems fall on the autonomous branch.
 - **Redefining an index breaks the comparison.** The Control Gap Index is invariant to rescaling an index but not to shifting its zero (Section 7). Capability is the *share* of a required capability set, so adding a newly recognised capability to that set is a shift, not a rescale — and evaluation suites are revised yearly. In practice the index moves whenever the instrument changes, so a reported series must state which definition each year used.
 - **The indices depend on immature evaluation suites.** Those suites are also vulnerable to gaming, and the capability index is blind to capability beyond sufficiency.

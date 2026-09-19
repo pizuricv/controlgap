@@ -45,8 +45,13 @@ INCIDENTS = [
         scenario_name='An AI in the decision chain',
         scenario_icon='🛰️',
         scenario_short='AI in the decision chain',
-        scenario_why='Agency is low — the model wrote a report, humans acted on it — but exposure is very high, and propensity sits at its worst case because nobody had to intend anything. Escalation is fast and recovery was measured in hours.',
-        preset={'C': 0.5, 'A': 0.35, 'O': 0.25, 'X': 0.85, 'M': 1.0, 'e0': 0.55, 'e1': 0.45, 'e2': 0.8, 'rho': 0.2, 'r_esc': 3.0, 'tau': 0.25, 'g': 0.0, 'gnu': 20, 'gC': 7, 'gA': 3, 'gO': 6, 'gX': 4, 'gM': 0, 'de0': 1.0, 'de1': 1.0, 'de2': 0.5, 'drho': 0.5, 'dtau': -4, 'horizon': 10},
+        scenario_why=(
+            'Agency is low — the model wrote a report, humans acted on it — while exposure is very high, because the people who deferred '
+            'could reach a great deal. This is the error branch (§6.6): nobody attempted anything, so the trigger M is the chance of a '
+            'dangerous-direction error times the chance the chain defers to it. Deference was close to total; the error rate is not. '
+            'Escalation is fast and recovery was measured in hours.'
+        ),
+        preset={'C': 0.5, 'A': 0.35, 'O': 0.25, 'X': 0.85, 'M': 0.25, 'e0': 0.55, 'e1': 0.45, 'e2': 0.8, 'rho': 0.2, 'r_esc': 3.0, 'tau': 0.25, 'g': 0.0, 'gnu': 20, 'gC': 7, 'gA': 3, 'gO': 6, 'gX': 4, 'gM': 0, 'de0': 1.0, 'de1': 1.0, 'de2': 0.5, 'drho': 0.5, 'dtau': -4, 'horizon': 10},
         title="An AI-written intelligence report nearly triggered the interception of a Chinese vessel",
         when="Reported 18 September 2026; the event took place earlier in 2026",
         rung=4,
@@ -62,7 +67,11 @@ INCIDENTS = [
             ("The Jerusalem Post", "https://www.jpost.com/international/article-909088"),
         ],
         teaches=(
-            "<b>The race, and what sits on the other side of it (§6.3).</b> Recovery beat escalation here, but not by much — the check that "
+            "<b>This is the branch the framework did not have (§6.6).</b> Nobody attempted anything: a system was confidently wrong and a chain "
+            "of people acted on it. Recording that as 'no intent barrier', M = 1, inverts what the term means — so the paper now carries a third "
+            "branch where the trigger is an error rate times a deference rate. That second factor is automation bias, measured for decades in "
+            "aviation and clinical decision support, which makes this the best-calibratable branch of the three.<br><br>"
+            "<b>And the race (§6.3).</b> Recovery beat escalation here, but not by much — the check that "
             "caught it happened after aircraft were airborne. A strike on a Chinese vessel is close to a one-way door: this is what a "
             "high p<sub>I</sub> looks like when the clocks nearly tie."
         ),

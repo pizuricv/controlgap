@@ -25,7 +25,7 @@ S1, S2, S3 = "#2a78d6", "#eb6834", "#1baf7a"
 FIT = {"type": "fit", "contains": "padding"}
 LAYERS = ("Detection", "Intervention", "Containment")
 NAMES = {
-    "nu": "Episodes ν", "C": "Capability C", "A": "Access A", "O": "Agency O", "X": "Exposure X", "M": "Propensity M",
+    "nu": "Episodes ν", "C": "Capability C", "A": "Access A", "O": "Agency O", "X": "Exposure X", "M": "Trigger M",
     "V": "Residual vulnerability V", "p_I": "Irreversibility p_I", "e0": "Detection", "e1": "Intervention",
     "e2": "Containment", "rho": "Common-mode ρ", "r_esc": "Escalation rate", "tau": "Recovery time",
 }  # fmt: skip

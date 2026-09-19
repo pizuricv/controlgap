@@ -211,7 +211,7 @@ def chain():
         slider("A", "Access A", 0.01, 1.0, 0.01, help="How many actors can get hold of that capability? Open weights push this up; API gating pushes it down.")
         slider("O", "Agency O", 0.01, 1.0, 0.01, help="Can it act? Tools, permissions, persistence, long unsupervised runs.")
         slider("X", "Exposure X", 0.01, 1.0, 0.01, help="What can it reach? Finance, cloud, industrial control, labs.")
-        slider("M", "Propensity M", 0.01, 1.0, 0.01, help="Would the acting agent, human or AI, actually try? 1 is the worst case. This is where alignment work shows up.")
+        slider("M", "Trigger M", 0.01, 1.0, 0.01, help="Does the chain actually start? Usually an attempt, by the system or by a person — or a confident error that somebody acts on. 1 is the worst case, and this is where alignment work shows up.")
         with st.expander("Advanced: coupling, and thresholds (§6.5, §6.7)"):
             slider("g", "Coupling g", 0.0, 1.0, 0.05, help="A capable system can obtain access, agency and exposure for itself, and evade oversight. 0 means the five levers move independently.")
             st.session_state.gated = st.checkbox(
@@ -243,7 +243,7 @@ def chain():
         "A more capable system gets its own access, its own agency and its own reach."
     )
     try_this("chain", [
-        "Drag **Propensity M** to 0.01. The hazard nearly vanishes: this is what alignment work buys.",
+        "Drag **Trigger M** to 0.01. The hazard nearly vanishes: that is what alignment work, or a habit of checking the output, buys.",
         "Put **Capability C** at 0.9, then open the advanced expander and set coupling to 0.5. Watch the other four indices move on their own.",
         "Set any single slider to its minimum. One zero ends the chain — that is the Drake structure.",
     ])  # fmt: skip
@@ -487,7 +487,7 @@ def precursors_chapter():
     rho_now, layers_now = float(s.effective_rho), [float(v) for v in s.effective_layers]
     with right:
         if incident.bypassed is None:
-            focus("precursor").metric("What this one measures", "Propensity M", f"you have it at {float(s.effective['M']):.2f}", delta_color="off", delta_arrow="off")
+            focus("precursor").metric("What this one measures", "Trigger M", f"you have it at {float(s.effective['M']):.2f}", delta_color="off", delta_arrow="off")
         else:
             beaten = [layers_now[i] for i in incident.bypassed]
             held = [v for i, v in enumerate(layers_now) if i not in incident.bypassed]
