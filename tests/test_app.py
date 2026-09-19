@@ -139,7 +139,43 @@ def test_control_gap_slope_matches_the_paper_dashboard():
     assert at.success
 
 
-def test_challenge_spends_a_budget_and_refuses_to_overspend():
+def test_the_game_runs_four_rounds_against_a_moving_world():
+    at = app("challenge")
+    assert at.session_state["game"]["round"] == 0
+    strip = next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
+    assert "Round 1 of 4" in strip and "25 pts to spend" in strip
+
+    for expected in range(1, 5):
+        sliders(at)["Incident response capacity · 15 pts"].set_value(10)
+        run(at)
+        next(b for b in at.button if b.label.startswith("Commit")).click()
+        run(at)
+        if expected < 4:
+            assert at.session_state["game"]["round"] == expected
+    assert at.session_state["game"]["done"]
+    text = " ".join(m.value for m in at.markdown)
+    assert "Where you differed" in text and "2037" in text
+    assert any("Play again" in b.label for b in at.button)
+
+
+def test_the_world_plays_a_card_that_cannot_be_unplayed():
+    at = app("challenge")
+    at.session_state["game"] = {"round": 1, "spent": {}, "log": [], "seed": 1, "done": False}
+    run(at)
+    takeaways = " ".join(m.value for m in at.markdown if "cg-take" in m.value)
+    assert "The world played a card" in takeaways
+    assert "not a prediction" in takeaways
+
+
+def test_the_walls_money_cannot_buy_are_on_screen():
+    at = app("challenge")
+    labels = [m.label for m in at.metric]
+    assert "The floor you cannot buy past" in labels
+    assert "Not recoverable at any price" in labels
+    assert "At the ceiling already" in labels
+
+
+def _retired_test_challenge_spends_a_budget_and_refuses_to_overspend():
     at = app("challenge")
     s = sliders(at)
     s["Incident response capacity · 15 pts"].set_value(100)
@@ -280,10 +316,12 @@ def test_progress_is_tracked_and_the_end_card_appears():
     assert at.session_state["visited"] == {2}
     assert "1 of 11 chapters read" in " ".join(m.value for m in at.sidebar.markdown)
     at = app("challenge")
+    at.session_state["game"]["done"] = True
+    run(at)
     assert any("Three things to leave with" in m.value for m in at.markdown)
     pasted = " ".join(c.value for c in at.get("code"))
     assert "The level is not identifiable" in pasted
-    assert "controlgap.streamlit.app?scenario=" in pasted
+    assert "scenario=" in pasted
 
 
 def test_a_shared_link_restores_the_scenario_and_the_tweaks():

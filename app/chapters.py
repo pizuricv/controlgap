@@ -829,106 +829,6 @@ def _end_card(cut: float):
         )
         right.markdown("**Your run, ready to paste**")
         right.code("\n".join(lines), language=None, wrap_lines=True)
-
-
-# ================================================================ 10. Challenge
-def _best_allocation(base_rate: float, budget: int, step: int = 5) -> tuple[dict, float]:
-    """Greedy search: spend the budget where each step buys the most reduction."""
-    alloc, spent = {}, 0
-    payable = [lv.name for lv in LEVERS if COST[lv.name] > 0]
-    while spent + step <= budget:
-        best, best_ratio = None, None
-        for name in payable:
-            trial = dict(alloc)
-            trial[name] = min(trial.get(name, 0) + step / 100, 1.0)
-            if sum(v * COST[k] for k, v in trial.items()) > budget:
-                continue
-            value = rate(scenario(**apply_levers(flat(), trial))) / base_rate
-            if best_ratio is None or value < best_ratio:
-                best, best_ratio = name, value
-        if best is None:
-            break
-        alloc[best] = min(alloc.get(best, 0) + step / 100, 1.0)
-        spent = sum(v * COST[k] for k, v in alloc.items())
-    return alloc, rate(scenario(**apply_levers(flat(), alloc))) / base_rate
-
-
-def challenge():
-    opener(
-        "Chapter 11 of 11 · Play",
-        "Your turn: buy down the hazard",
-        f"You have <b>{BUDGET} points</b> of effort and a menu of interventions with different prices. Spend them however you like. "
-        "The goal is simple: cut the hazard as far as you can.",
-        "§11 Sensitivity, §14 What levers act on which variables",
-    )
-    s = scenario()
-    base = rate(s)
-    head = st.container(key="sticky")
-    st.write("")
-
-    picks, spent = {}, 0
-    cols = st.columns(3, gap="large")
-    payable = [lv for lv in LEVERS if COST[lv.name] > 0]
-    for i, lever in enumerate(payable):
-        col = cols[i % 3]
-        share = col.slider(f"{lever.name} · {COST[lever.name]} pts", 0, 100, 0, 10, format="%d%%", key=f"ch_{lever.name}", help=lever.description)
-        picks[lever.name] = share / 100
-        spent += share / 100 * COST[lever.name]
-        col.caption(f"{share / 100 * COST[lever.name]:.0f} of {COST[lever.name]} pts")
-
-    over = spent > BUDGET
-    applied = {} if over else {k: v for k, v in picks.items() if v > 0}
-    ratio = rate(scenario(**apply_levers(flat(), applied))) / base
-    cut = 1 - ratio
-    chip = f"{spent:.0f} / {BUDGET} pts spent" if not over else f"over budget by {spent - BUDGET:.0f} pts"
-    note = "Over budget — nothing is applied until you trim it." if over else ("Nothing spent yet." if not applied else f"Hazard is now ×{ratio:.2f} of where it started.")
-    strip(f"−{cut:.0%}" if not over else "—", "Hazard cut by", chip, note, where=head)
-
-    st.divider()
-    left, right = st.columns([2, 3], gap="large")
-    with left:
-        if over:
-            st.error(f"You are {spent - BUDGET:.0f} points over. Trim something.", icon=":material/error:")
-        elif cut >= 0.9:
-            st.success("Over 90% cut. That is about as far as this scenario goes.", icon=":material/military_tech:")
-            if not st.session_state.get("cheered"):
-                st.session_state.cheered = True
-                st.balloons()
-        elif cut >= 0.6:
-            st.info("A serious dent. Can you find the last stretch?", icon=":material/trending_down:")
-        st.metric("Points left", f"{max(BUDGET - spent, 0):.0f}")
-        if st.button("Show me the best mix I can find", type="primary"):
-            st.session_state.show_best = True
-        if st.button("Clear my picks"):
-            for lever in payable:
-                st.session_state[f"ch_{lever.name}"] = 0
-            st.session_state.show_best = False
-            st.rerun()
-
-    with right:
-        if st.session_state.get("show_best"):
-            alloc, best_ratio = _best_allocation(base, BUDGET)
-            st.markdown(f"**A greedy search gets to −{1 - best_ratio:.0%}**, against your −{cut:.0%}, with this mix:")
-            st.dataframe(
-                pd.DataFrame([{"Intervention": k, "Strength": f"{v:.0%}", "Cost": f"{v * COST[k]:.0f} pts"} for k, v in sorted(alloc.items(), key=lambda kv: -kv[1] * COST[kv[0]])]),
-                hide_index=True,
-                width="stretch",
-            )
-            st.caption("Greedy, not optimal — but notice how it concentrates on a few levers rather than spreading thin.")
-        else:
-            st.markdown(
-                "**Three things this tends to teach.**\n\n"
-                "- Spreading the budget evenly is almost always worse than concentrating it.\n"
-                "- The cheap control-side buys — incident response, reporting — often beat the expensive consequence-side ones.\n"
-                "- If the shared blind spot ρ is large, defence spending stalls early. Go back to chapter 4, raise ρ, and try again."
-            )
-    takeaway(
-        "<b>The prices here are invented.</b> The structure is not: each intervention acts on particular terms, and the returns "
-        "genuinely do interact and saturate. If you want this to mean something, replace the costs with your own and the effect "
-        "sizes with evidence — that is what the package is for."
-    )
-    st.divider()
-    _end_card(cut if not over else 0.0)
     st.markdown(
         f"#### That's the tour\n\nThe model, the package and the paper are open, and free for anyone to use.\n\n"
         f"- **Paper** — [The AI Drake Equation]({PAPER}), CC BY 4.0\n"
@@ -937,3 +837,239 @@ def challenge():
         f"- **Argue with it** — the functional forms are hypotheses and the framework is weakest exactly where it matters most, "
         f"on autonomous loss of control. Issues and pull requests welcome, especially real data for any of these terms."
     )
+
+
+# ================================================================ 10. Challenge
+ROUNDS = [(2026, "2026–28"), (2029, "2029–31"), (2032, "2032–34"), (2035, "2035–37")]
+PER_ROUND = BUDGET // len(ROUNDS)
+# One card the world may play at the start of round 2. None of these is a prediction.
+WORLD_CARDS = [
+    ("Weights for a frontier model are released.", "Open weights: proliferation"),
+    ("A wave of agentic deployment arrives early.", "Agentic deployment boom"),
+    ("A capability generation lands ahead of schedule.", "Frontier capability jump"),
+    ("A quiet year. Nothing you did not plan for.", None),
+]
+
+
+def _game_state() -> dict:
+    # seed 1 opens with a card that actually does something; a quiet year is a poor first impression
+    return st.session_state.setdefault("game", {"round": 0, "spent": {}, "log": [], "seed": 1, "done": False})
+
+
+def _world_events(game: dict) -> dict:
+    """What the world has played so far, as lever strengths."""
+    rng = np.random.default_rng(game["seed"])
+    card = WORLD_CARDS[int(rng.integers(len(WORLD_CARDS)))]
+    return {card[1]: 1.0} if card[1] and game["round"] >= 1 else {}, card
+
+
+def _advance(values: dict, years: int) -> dict:
+    """Let the world run forward, using the scenario's own growth rates."""
+    out = dict(values)
+    p = P()
+    for k in "CAOXM":
+        out[k] = float(np.clip(values[k] * (1 + p[f"g{k}"] / 100) ** years, 0.01, 1.0))
+    out["nu"] = values.get("nu", 1.0) * (1 + p["gnu"] / 100) ** years
+    for i in range(3):
+        out[f"e{i}"] = float(np.clip(values[f"e{i}"] + p[f"de{i}"] / 100 * years, 0.0, 0.99))
+    out["rho"] = float(np.clip(values["rho"] + p["drho"] / 100 * years, 0.0, 1.0))
+    out["tau"] = values["tau"] * (1 + p["dtau"] / 100) ** years
+    return out
+
+
+def _play_out(spend_by_round: dict, world: dict) -> float:
+    """Hazard in 2037, after four rounds of purchases against a world that keeps moving."""
+    values = flat()
+    bought: dict[str, float] = {}
+    for index, _ in enumerate(ROUNDS):
+        bought |= spend_by_round.get(index, {})
+        if index >= 1:
+            bought |= world
+        values = apply_levers(_advance(flat(), 3 * (index + 1)), bought)
+    return rate(scenario(**values))
+
+
+def _efficiency(spend_by_round: dict, world: dict, name: str, step: float = 0.2) -> float:
+    """Hazard reduction per point, for one more slice of this lever right now."""
+    base = _play_out(spend_by_round, world)
+    trial = {k: dict(v) for k, v in spend_by_round.items()}
+    current = trial.setdefault(len(ROUNDS) - 1, {})
+    already = max((r.get(name, 0.0) for r in spend_by_round.values()), default=0.0)
+    if already >= 1.0:
+        return 0.0
+    current[name] = min(already + step, 1.0)
+    cost = step * COST[name]
+    return (1 - _play_out(trial, world) / base) / cost * 100 if cost else 0.0
+
+
+def challenge():
+    opener(
+        "Chapter 11 of 11 · Play",
+        "Ten years, four budgets, a world that does not wait",
+        f"You get {PER_ROUND} points of effort every three years. Purchases last, and so does everything the world does "
+        "in between. The score is the Control Gap Index in 2037 against doing nothing — the paper's own identifiable "
+        "quantity, so you are playing against a slope, not a level.",
+        "§11 Sensitivity, §14 What levers act on which variables",
+    )
+    game = _game_state()
+    world, card = _world_events(game)
+    head = st.container(key="sticky")
+
+    do_nothing = _play_out({}, world)
+    so_far = _play_out(game["spent"], world)
+    held = 1 - so_far / do_nothing
+    banked = sum(v * COST[k] for r in game["spent"].values() for k, v in r.items())
+    available = PER_ROUND * (game["round"] + 1) - banked
+    if game["done"]:
+        chip, label = f"{banked:.0f} of {BUDGET} pts spent", "Final · 2037"
+    else:
+        chip, label = f"{available:.0f} pts to spend", f"Round {game['round'] + 1} of {len(ROUNDS)} · {ROUNDS[game['round']][1]}"
+    strip(f"−{held:.0%}", "Hazard held down by", chip, label, where=head)
+
+    walls = scenario(**_advance(flat(), 3 * game["round"]))
+    a, b, c = st.columns(3, gap="large")
+    a.metric("The floor you cannot buy past", f"ρ = {float(walls.effective_rho):.2f}", f"V is {num(walls.V, 3)} now", delta_color="off", delta_arrow="off")
+    b.metric("Not recoverable at any price", f"{float(walls.p_I) * 100:.0f} of 100", "of what gets through", delta_color="off", delta_arrow="off")
+    capped = [k for k in "CAOXM" if float(walls.effective[k]) >= 0.999]
+    c.metric("At the ceiling already", ", ".join(capped) if capped else "none yet", "after that only ν moves", delta_color="off", delta_arrow="off")
+
+    if game["round"] >= 1 and card[1]:
+        takeaway(
+            f"<b>The world played a card: {card[0]}</b> You had no vote and you cannot unplay it. <b>This is not a prediction</b> "
+            "that it will happen — it is a reminder that some of the things which move these terms are one-way doors, and they are "
+            "not on your menu. Your remaining points now have to work in a different world than the one you planned for.",
+            warn=True,
+        )
+
+    if game["done"]:
+        _game_result(game, world, do_nothing, so_far, held)
+        return
+
+    st.markdown(f"#### {ROUNDS[game['round']][1]} — {available:.0f} points available")
+    st.caption("Unspent points carry to the next round. Efficiency is the hazard reduction you get per point, right now, and it changes as you buy.")
+    payable = [lv for lv in LEVERS if COST[lv.name] > 0]
+    cols = st.columns(3, gap="large")
+    picks = {}
+    for i, lever in enumerate(payable):
+        col = cols[i % 3]
+        already = max((r.get(lever.name, 0.0) for r in game["spent"].values()), default=0.0)
+        room = int((1.0 - already) * 100)
+        if room <= 0:
+            col.markdown(f"**{lever.name}**")
+            col.caption("Fully funded.")
+            continue
+        share = col.slider(f"{lever.name} · {COST[lever.name]} pts", 0, room, 0, 10, format="%d%%", key=f"g{game['round']}_{lever.name}", help=lever.description)
+        picks[lever.name] = already + share / 100
+        eff = _efficiency(game["spent"], world, lever.name)
+        capped_by_rho = float(walls.effective_rho) / float(walls.V) > 0.5 and set(lever.effects) <= {"e0", "e1", "e2"}
+        col.caption(f"{share / 100 * COST[lever.name]:.0f} pts · {eff:.1f}% per point" + (" · ρ caps this" if capped_by_rho else ""))
+
+    round_cost = sum((picks[k] - max((r.get(k, 0.0) for r in game["spent"].values()), default=0.0)) * COST[k] for k in picks)
+    over = round_cost > available
+    left, right = st.columns([2, 3], gap="large")
+    if over:
+        left.error(f"{round_cost - available:.0f} points over. Trim something.", icon=":material/error:")
+    else:
+        left.metric("This round", f"{round_cost:.0f} pts", f"{available - round_cost:.0f} carried forward", delta_color="off", delta_arrow="off")
+    if left.button("Commit this round →", type="primary", disabled=over, width="stretch"):
+        game["spent"][game["round"]] = {k: v for k, v in picks.items() if v > 0}
+        game["round"] += 1
+        if game["round"] >= len(ROUNDS):
+            game["round"] = len(ROUNDS) - 1
+            game["done"] = True
+        st.rerun()
+    right.markdown(
+        "**What buys what**\n\n"
+        "Efficiency falls as you buy — that is saturation, not a bug. A lever marked *ρ caps this* only touches layer strength, "
+        "and the shared blind spot is already most of what gets through, so it is buying you a better lock on a door nobody uses.\n\n"
+        "Buying early compounds for longer. Saving lets you afford the expensive levers. Neither is always right."
+    )
+    takeaway(
+        "<b>The prices here are invented.</b> The structure is not: each intervention acts on particular terms, the returns "
+        "saturate, and the world keeps moving whether you spend or not. Replace the costs with yours and the effect sizes with "
+        "evidence — that is what the package is for."
+    )
+
+
+def _game_result(game: dict, world: dict, do_nothing: float, yours: float, held: float):
+    greedy, greedy_rate = _greedy_plan(world)
+    st.markdown("#### 2037")
+    rows = pd.DataFrame([
+        {"Plan": "Do nothing", "Hazard in 2037": f"×{do_nothing / rate(scenario()):.1f}", "Held down by": "—"},
+        {"Plan": "Yours", "Hazard in 2037": f"×{yours / rate(scenario()):.1f}", "Held down by": f"{held:.0%}"},
+        {"Plan": "A greedy planner", "Hazard in 2037": f"×{greedy_rate / rate(scenario()):.1f}", "Held down by": f"{1 - greedy_rate / do_nothing:.0%}"},
+    ])  # fmt: skip
+    left, right = st.columns([2, 3], gap="large")
+    left.dataframe(rows, hide_index=True, width="stretch")
+    yours_flat: dict[str, float] = {}
+    for r in game["spent"].values():
+        for k, v in r.items():
+            yours_flat[k] = max(yours_flat.get(k, 0.0), v)
+    right.markdown("**Where you differed**\n\n" + "\n".join(_diagnose(yours_flat, greedy)))
+    if held >= 1 - greedy_rate / do_nothing - 0.02:
+        st.success("You matched the planner. There is not much left on this board.", icon=":material/military_tech:")
+        st.balloons()
+    a, b = st.columns(2)
+    if a.button("Play again, different world", width="stretch"):
+        st.session_state["game"] = {"round": 0, "spent": {}, "log": game["log"] + [held], "seed": game["seed"] + 1, "done": False}
+        st.rerun()
+    if b.button("Start over", width="stretch"):
+        del st.session_state["game"]
+        st.rerun()
+    if game["log"]:
+        st.caption("Your runs so far: " + " · ".join(f"{x:.0%}" for x in game["log"] + [held]))
+        takeaway(
+            "<b>A mix that only works when the world cooperates is a bet, not a plan.</b> Run the same idea against a different "
+            "card and see which of your choices survive. This is what robustness means here, and it is why the paper refuses to "
+            "answer the open-weight question with a number."
+        )
+    _end_card(held)
+
+
+def _greedy_plan(world: dict, step: float = 0.2):
+    """A simple planner that spends each round where the next slice buys most."""
+    spent: dict[int, dict[str, float]] = {}
+    carried = 0.0
+    payable = [lv.name for lv in LEVERS if COST[lv.name] > 0]
+    for index in range(len(ROUNDS)):
+        budget = PER_ROUND + carried
+        round_pick: dict[str, float] = {}
+        while True:
+            best, best_rate = None, None
+            for name in payable:
+                already = max((r.get(name, 0.0) for r in list(spent.values()) + [round_pick]), default=0.0)
+                if already >= 1.0 or step * COST[name] > budget:
+                    continue
+                trial = {k: dict(v) for k, v in spent.items()}
+                trial[index] = dict(round_pick) | {name: already + step}
+                value = _play_out(trial, world)
+                if best_rate is None or value < best_rate:
+                    best, best_rate = name, value
+            if best is None:
+                break
+            already = max((r.get(best, 0.0) for r in list(spent.values()) + [round_pick]), default=0.0)
+            round_pick[best] = already + step
+            budget -= step * COST[best]
+        spent[index] = round_pick
+        carried = budget
+    flat_pick: dict[str, float] = {}
+    for r in spent.values():
+        for k, v in r.items():
+            flat_pick[k] = max(flat_pick.get(k, 0.0), v)
+    return flat_pick, _play_out(spent, world)
+
+
+def _diagnose(yours: dict, theirs: dict) -> list[str]:
+    """Two or three sentences about the difference, not just the delta."""
+    notes = []
+    layers = {"AI-powered defence", "Mandatory evaluations and incident reporting"}
+    your_layers = sum(yours.get(k, 0) * COST[k] for k in layers)
+    their_layers = sum(theirs.get(k, 0) * COST[k] for k in layers)
+    if your_layers > their_layers + 10:
+        notes.append(f"- You put {your_layers:.0f} points into layer strength and the planner put {their_layers:.0f}. With ρ where it is, most of what gets through uses the shared channel, so a better detector is a better lock on a door nobody uses.")
+    for name in sorted(set(theirs) | set(yours), key=lambda k: -abs(theirs.get(k, 0) - yours.get(k, 0)))[:2]:
+        delta = theirs.get(name, 0) - yours.get(name, 0)
+        if abs(delta) < 0.2:
+            continue
+        notes.append(f"- {'You underspent on' if delta > 0 else 'You overspent on'} **{name}** by about {abs(delta) * COST[name]:.0f} points.")
+    return notes or ["- Almost the same mix. The difference is in when you bought, not what."]
