@@ -144,9 +144,9 @@ For a catastrophe, **every one of these has to line up at once**:
         st.markdown(
             "A probability of doom. The honest result in the paper is that **no such number is identifiable yet** — "
             "the same inputs give anything from 0.04% to 33%.\n\nWhat *is* measurable is the **trend**: whether "
-            "consequential capability is pulling ahead of control. Ten short chapters get you there."
+            "consequential capability is pulling ahead of control. Eleven short chapters get you there."
         )
-        st.caption("Ten minutes. Nothing you click can break it.")
+        st.caption("About fifteen minutes. Nothing you click can break it.")
 
     st.write("")
     st.markdown("#### Pick a scenario to carry with you")
@@ -208,8 +208,14 @@ def chain():
         slider("O", "Agency O", 0.01, 1.0, 0.01, help="Can it act? Tools, permissions, persistence, long unsupervised runs.")
         slider("X", "Exposure X", 0.01, 1.0, 0.01, help="What can it reach? Finance, cloud, industrial control, labs.")
         slider("M", "Propensity M", 0.01, 1.0, 0.01, help="Would the acting agent, human or AI, actually try? 1 is the worst case. This is where alignment work shows up.")
-        with st.expander("Advanced: does capability drag the others with it? (§6.7)"):
+        with st.expander("Advanced: coupling, and thresholds (§6.5, §6.7)"):
             slider("g", "Coupling g", 0.0, 1.0, 0.05, help="A capable system can obtain access, agency and exposure for itself, and evade oversight. 0 means the five levers move independently.")
+            st.session_state.gated = st.checkbox(
+                "Treat capability as a threshold, not a power law", value=st.session_state.gated,
+                help="Specification II: some dangerous tasks may be infeasible below a capability level and routine above it.")  # fmt: skip
+            if st.session_state.gated:
+                st.session_state.C0 = st.slider("Threshold C₀", 0.05, 0.95, st.session_state.C0, 0.05)
+                st.session_state.k = st.slider("Steepness k", 1.0, 40.0, st.session_state.k, 1.0)
 
     s = scenario()
     eff = s.effective
@@ -225,8 +231,8 @@ def chain():
             tooltip=["Stage", alt.Tooltip("Factor:Q", format=".3f"), alt.Tooltip("Remaining:Q", format=".2e")])  # fmt: skip
         text = base.mark_text(align="right", dx=-10, color=label_colour()).encode(text=alt.Text("Remaining:Q", format=".2~%"))
         st.altair_chart((base.mark_line(color=S1, strokeWidth=2) + base.mark_point(color=S1, filled=True, size=90, opacity=1) + text).properties(autosize=FIT, height=alt.Step(30)), width="stretch")
-        st.latex(r"\text{consequence} \;=\; " + r" \times ".join(rf"\underbrace{{{tex(eff[k])}}}_{{{k}}}" for k in "CAOXM") + rf" \;=\; {tex(s.indices, 4)}")
 
+    st.latex(r"\text{consequence} \;=\; " + r" \times ".join(rf"\underbrace{{{tex(eff[k])}}}_{{{k}}}" for k in "CAOXM") + rf" \;=\; {tex(s.indices, 4)}")
     takeaway(
         "<b>This is a conjunction, and that cuts both ways.</b> It is why catastrophe is rare: five things must coincide. "
         "It is also why the picture is uncomfortable — every one of the five is trending upwards at once, and they are not independent. "
@@ -250,37 +256,67 @@ def lambda0():
         "§12 An illustrative calibration",
     )
     s = scenario()
+    T = st.slider("Horizon T (years)", 1, 50, 10)
+    st.markdown("**Your chain, three defensible priors, one horizon.**")
+    priors = [
+        (0.1, "An attempt worth worrying about arises about once a decade."),
+        (1.0, "About once a year."),
+        (10.0, "Ten a year. The world is full of attempts."),
+    ]
+    for col, (lam, gloss) in zip(st.columns(3, gap="large"), priors):
+        with col:
+            st.caption(gloss)
+            st.metric(f"λ₀ = {lam:g}", f"{float(s.probability(lam, T)):.2%}", label_visibility="visible")
+    takeaway(
+        "<b>Nothing about the world changed between those three columns.</b> The chain is identical, the defences are identical. "
+        "The only thing that moved is a rate nobody has ever measured, because the event has never happened. "
+        "Pick whichever column you prefer — that is exactly what a published p(doom) does, silently."
+    )
+
+    st.write("")
     left, right = st.columns([1, 2], gap="large")
     with left:
+        st.markdown("**Or set your own**")
         lam0 = st.select_slider("Baseline rate λ₀ (events / yr)", options=[0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100], value=0.1)
-        T = st.slider("Horizon T (years)", 1, 50, 10)
-        focus("p").metric(f"P(catastrophe within {T} yr)", f"{float(s.probability(lam0, T)):.2%}", help="Only as good as your guess of λ₀, which nothing pins down.")
-        lo, hi = s.probability([0.01, 10], T)
-        st.markdown(f"Same chain, same defences: **{lo:.2%}** if λ₀ is 0.01, **{hi:.1%}** if λ₀ is 10.")
+        focus("p").metric(f"P(catastrophe within {T} yr)", f"{float(s.probability(lam0, T)):.2%}",
+                          help="Only as good as your guess of λ₀, which nothing pins down.")  # fmt: skip
+        halve = st.radio("Now halve one thing", ["Access", "Propensity", "Recovery time", "Nothing"], index=0)
 
+    key = {"Access": "A", "Propensity": "M", "Recovery time": "tau"}.get(halve)
     grid = np.logspace(-3, 2, 200)
+    frames = [pd.DataFrame({"lambda0": grid, "P": s.probability(grid, T), "Chain": "as you set it"})]
+    if key:
+        halved = scenario(**{key: P()[key] / 2})
+        frames.append(pd.DataFrame({"lambda0": grid, "P": halved.probability(grid, T), "Chain": f"{halve.lower()} halved"}))
+    df = pd.concat(frames)
     x = alt.X("lambda0:Q", scale=alt.Scale(type="log"), axis=alt.Axis(values=[0.001, 0.01, 0.1, 1, 10, 100], format="~g"),
-              title="Baseline rate λ₀ — events / yr at maximum indices, no defences, certain escalation")  # fmt: skip
-    y = alt.Y("P:Q", scale=alt.Scale(domain=[0, 100]), title=f"P(catastrophe within {T} yr), %")
-    tip = [alt.Tooltip("lambda0:Q", title="λ₀", format=".3g"), alt.Tooltip("P:Q", title="P, %", format=".3g")]
-    curve = alt.Chart(pd.DataFrame({"lambda0": grid, "P": s.probability(grid, T) * 100})).mark_line(strokeWidth=2, color=S1).encode(x=x, y=y, tooltip=tip)
-    point = pd.DataFrame({"lambda0": [lam0], "P": [float(s.probability(lam0, T)) * 100]})
-    mark = alt.Chart(point).mark_point(size=150, filled=True, color=S2, opacity=1).encode(x=x, y=y, tooltip=tip)
-    text = alt.Chart(point).mark_text(text="your λ₀", dy=-16, color=label_colour()).encode(x=x, y=y)
-    right.altair_chart((curve + mark + text).properties(autosize=FIT), width="stretch")
+              title="Baseline rate λ₀ (events / yr)")  # fmt: skip
+    y = alt.Y("P:Q", scale=alt.Scale(type="log", domain=[1e-6, 1], clamp=True),
+              axis=alt.Axis(values=[1, 0.1, 0.01, 0.001, 1e-4, 1e-5, 1e-6], format="~%"), title=f"P(catastrophe), {T} yr (log)")  # fmt: skip
+    colour = alt.Color("Chain:N", scale=alt.Scale(range=[S1, S2]), legend=alt.Legend(orient="top", title=None, labelLimit=0))
+    lines = alt.Chart(df).mark_line(strokeWidth=2).encode(x=x, y=y, color=colour,
+                                                          tooltip=["Chain", alt.Tooltip("lambda0:Q", title="λ₀", format=".3g"), alt.Tooltip("P:Q", format=".2%")])  # fmt: skip
+    point = pd.DataFrame({"lambda0": [lam0], "P": [float(s.probability(lam0, T))], "Chain": ["as you set it"]})
+    mark = alt.Chart(point).mark_point(size=150, filled=True, color=S3, opacity=1).encode(x=x, y=y)
+    right.altair_chart((lines + mark).properties(autosize=FIT, height=340), width="stretch")
+    right.caption("λ₀ is the rate at maximum indices, with no defences and certain escalation. The dot is your setting.")
 
-    takeaway(
-        "<b>Every headline p(doom) has quietly picked a λ₀.</b> That is why those debates never resolve: people are arguing "
-        "about a parameter nobody names, with no data that could settle it. This model cannot give you the level — and says so."
-    )
-    takeaway(
-        "But notice what <i>did</i> survive. Halve any factor and the hazard halves, <b>whatever λ₀ is</b>. "
-        "Ratios are solid even when levels are hopeless. Chapter 8 turns that into the one number worth tracking.",
-    )
-    try_this("lambda0", [
-        "Sweep λ₀ end to end. The answer moves by a factor of a thousand and nothing about the world changed.",
-        "Go back to chapter 2, halve **Access A**, and return. The percentage halves at every λ₀ — the ratio is stable.",
-    ])  # fmt: skip
+    if key:
+        takeaway(
+            "<b>Two parallel lines, and they stay parallel.</b> Halving that one thing divides the <i>hazard</i> by exactly the same "
+            "factor at every λ₀ — all five orders of magnitude of it. The lines close up only at the top right, where both chains are "
+            "near certainty and there is no room left. <b>The level is unknowable; the ratio is fixed.</b> That ratio is the only thing "
+            "here you can measure, and the rest of the tour is about measuring it."
+        )
+    if abs(lam0 * T - 1) < 0.05:
+        takeaway(
+            f"<b>Notice the coincidence.</b> Your chain × defences is <b>{num(s.factor, 5)}</b>, and your {T}-year probability is "
+            f"<b>{float(s.probability(lam0, T)):.2%}</b>. They are the same number, because λ₀ × T = 1 here. Anyone who reads a chain of "
+            "factors straight off as a probability has picked λ₀T = 1 without knowing they picked anything — the paper's own first draft did.",
+            warn=True,
+        )
+    else:
+        st.caption(f"Set λ₀ = {1 / T:g} with T = {T} and watch the probability meet the chain × defences figure in the sidebar.")
     next_chapter("Chapter 4 · The layers", go("layers"))
 
 
@@ -344,7 +380,8 @@ def layers():
         "only thing that moves V. Separate the monitoring from the monitored system, and diversify.",
         warn=rho_now / float(s.V) > 0.5,
     )
-    with st.expander("Score a near-miss, the way nuclear safety does"):
+    st.markdown("#### Score a near-miss, the way nuclear safety does")
+    if True:  # kept indented: this is the most surprising number in the app, so it is not hidden
         a, b = st.columns([2, 3])
         passed_n = a.radio("How many layers did the event get past before something stopped it?", [0, 1, 2], index=2, horizontal=True)
         score = cg_precursors.conditional_catastrophe_probability(layers_now[:passed_n], layers_now[passed_n:], rho_now, float(s.p_I))
@@ -383,7 +420,7 @@ def race():
     with right:
         rng = np.random.default_rng(11)
         n = 100
-        escalated = rng.random(n) < p_I
+        escalated = np.sort(rng.random(n) < p_I)[::-1]  # sorted, so the proportion is legible at a glance
         grid_df = pd.DataFrame({
             "col": np.arange(n) % 10, "row": np.arange(n) // 10,
             "Outcome": np.where(escalated, "irreversible", "recovered in time"),
@@ -481,7 +518,8 @@ def precursors_chapter():
         st.link_button("Propose an event", INCIDENT_ISSUE, width="stretch", icon=":material/add_link:")
 
     st.divider()
-    _fit_panel()
+    with st.expander("Advanced: estimate the exponents from precursor counts (§11)"):
+        _fit_panel()
     next_chapter("Chapter 7 · Where effort pays", go("levers"))
 
 
@@ -521,6 +559,8 @@ def _fit_panel():
         for name, label in (("A", "θ for access"), ("O", "θ for agency")):
             lo, hi = fit.interval(name)
             st.metric(label, f"{fit.theta[name]:.2f}", f"90% interval {lo:.2f} to {hi:.2f}", delta_color="off", delta_arrow="off")
+            if lo < 0 < hi:
+                st.caption("The interval spans zero: with this much data the fit cannot tell you the sign, let alone the size. That is the honest state of the field.")
         st.caption(f"Per-episode precursor rate at indices of 1: {np.exp(fit.log_scale):.2e}")
     takeaway(
         "<b>This is the scientific target (§11).</b> “Access matters more than capability” is not an opinion, it is the claim "
@@ -590,7 +630,7 @@ def whatif():
         col.markdown(f"**{group}**")
         for lever in (lv for lv in LEVERS if lv.group == group):
             acts = ", ".join(f"{NAMES[k]} {'↑' if u > 0 else '↓'}" for k, u in lever.effects.items())
-            strengths[lever.name] = col.slider(lever.name, 0, 100, 0, 10, format="%d%%", help=f"{lever.description}\n\nActs on: {acts}") / 100
+            strengths[lever.name] = col.slider(lever.name, 0, 100, 0, 10, format="%d%%", help=lever.description) / 100
             col.caption(f"Acts on: {acts}")
 
     s, base = scenario(), None
@@ -603,34 +643,34 @@ def whatif():
     note = f"Strongest driver: <b>{top['Driver']}</b> ({top['Change in hazard, %']:+.0f}%)" if active else "Move a slider below. This line stays in view while you scroll."
     strip(f"×{ratio:.2f}", "Hazard changes by", chip, note, where=head)
 
-    h = support.columns(3)
-    h[0].metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}", help="The log of the hazard ratio. It needs no λ₀.")
     open_only = {k: v for k, v in active.items() if k.startswith("Open weights")}
-    if open_only:
-        net = rate(scenario(**apply_levers(flat(), open_only))) / rate(s)
-        h[1].metric("Open weights, on net", f"{net - 1:+.0%}", help="Proliferation and the defensive ecosystem, together.")
-    else:
-        h[1].metric("Open weights, on net", "not applied")
-    h[2].metric("Drivers applied", f"{len(active)} of {len(LEVERS)}")
-
-    st.divider()
-    b, c = st.columns(2, gap="large")
     if not active:
-        b.info("Move a slider above to apply a driver.")
+        st.caption("Move a driver above. The index shift, the open-weights effect and the term-by-term table appear here.")
     else:
+        h = support.columns(3)
+        h[0].metric("Shift in the Control Gap Index", f"{np.log(ratio):+.2f}", help="The log of the hazard ratio. It needs no λ₀.")
+        if open_only:
+            net = rate(scenario(**apply_levers(flat(), open_only))) / rate(s)
+            h[1].metric("Open weights, on net", f"{net - 1:+.0%}", help="Proliferation and the defensive ecosystem, together.")
+        else:
+            h[1].metric("Open weights, on net", "not applied")
+        h[2].metric("Drivers applied", f"{len(active)} of {len(LEVERS)}")
+
+        st.divider()
+        b, c = st.columns(2, gap="large")
         solo["Effect"] = np.where(solo["Change in hazard, %"] >= 0, "raises hazard", "lowers hazard")
         b.markdown("**Each driver on its own**")
         b.altair_chart(bars(solo, "Change in hazard, %", "Driver", "Effect", ["raises hazard", "lowers hazard"], [S2, S1], "+.1f", 30), width="stretch")
         b.caption("Drivers multiply, so the bars do not add up to the total.")
-    after = scenario(**apply_levers(flat(), active))
-    rows = {"Episodes ν": (1.0, float(after.nu))} | {NAMES[k]: (float(s.effective[k]), float(after.effective[k])) for k in "CAOXM"}
-    rows |= {NAMES["V"]: (float(s.V), float(after.V)), NAMES["p_I"]: (float(s.p_I), float(after.p_I))}
-    c.markdown("**Which terms moved**")
-    c.dataframe(
-        pd.DataFrame([{"Term": k, "Before": f"{u:.3f}", "After": f"{v:.3f}", "Change": "" if np.isclose(u, v) else f"{v / u - 1:+.0%}"} for k, (u, v) in rows.items()]),
-        hide_index=True,
-        width="stretch",
-    )
+        after = scenario(**apply_levers(flat(), active))
+        rows = {"Episodes ν": (1.0, float(after.nu))} | {NAMES[k]: (float(s.effective[k]), float(after.effective[k])) for k in "CAOXM"}
+        rows |= {NAMES["V"]: (float(s.V), float(after.V)), NAMES["p_I"]: (float(s.p_I), float(after.p_I))}
+        c.markdown("**Which terms moved**")
+        c.dataframe(
+            pd.DataFrame([{"Term": k, "Before": f"{u:.3f}", "After": f"{v:.3f}", "Change": "" if np.isclose(u, v) else f"{v / u - 1:+.0%}"} for k, (u, v) in rows.items()]),
+            hide_index=True,
+            width="stretch",
+        )
     takeaway(
         "<b>Open weights is the one to sit with.</b> The paper refuses to answer it, on purpose: release raises access and strips "
         "safeguards, and it also builds the defensive ecosystem that lowers the shared blind spot. The sign depends on the scenario "
@@ -803,10 +843,10 @@ def challenge():
     payable = [lv for lv in LEVERS if COST[lv.name] > 0]
     for i, lever in enumerate(payable):
         col = cols[i % 3]
-        share = col.slider(lever.name, 0, 100, 0, 10, format="%d%%", key=f"ch_{lever.name}", help=f"{lever.description}\n\nFull strength costs {COST[lever.name]} points.")
+        share = col.slider(f"{lever.name} · {COST[lever.name]} pts", 0, 100, 0, 10, format="%d%%", key=f"ch_{lever.name}", help=lever.description)
         picks[lever.name] = share / 100
         spent += share / 100 * COST[lever.name]
-        col.caption(f"Spending {share / 100 * COST[lever.name]:.0f} pts" if share else "Not funded")
+        col.caption(f"{share / 100 * COST[lever.name]:.0f} of {COST[lever.name]} pts")
 
     over = spent > BUDGET
     applied = {} if over else {k: v for k, v in picks.items() if v > 0}
@@ -840,7 +880,7 @@ def challenge():
     with right:
         if st.session_state.get("show_best"):
             alloc, best_ratio = _best_allocation(base, BUDGET)
-            st.markdown(f"**A greedy search gets to −{1 - best_ratio:.0%}** with this mix:")
+            st.markdown(f"**A greedy search gets to −{1 - best_ratio:.0%}**, against your −{cut:.0%}, with this mix:")
             st.dataframe(
                 pd.DataFrame([{"Intervention": k, "Strength": f"{v:.0%}", "Cost": f"{v * COST[k]:.0f} pts"} for k, v in sorted(alloc.items(), key=lambda kv: -kv[1] * COST[kv[0]])]),
                 hide_index=True,

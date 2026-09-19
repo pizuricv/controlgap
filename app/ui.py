@@ -76,10 +76,12 @@ CSS = """
 [data-testid="stMetricLabel"] p {white-space: normal; overflow: visible;}
 [data-testid="stSliderThumbValue"] {color: inherit; font-weight: 600; font-variant-numeric: tabular-nums;}
 [data-testid="stSidebarHeader"] {height: 2.75rem; min-height: 0; margin-bottom: 0;}
-.katex-display {overflow-x: auto; overflow-y: hidden;}
+[data-testid="stButton"] button p {white-space: normal; line-height: 1.25;}
+.katex-display {overflow-x: auto; overflow-y: hidden; padding-bottom: .35rem; scrollbar-width: thin; text-align: left;}
+.katex-display > .katex {text-align: left; margin: 0;}
 
 /* Chapter opener */
-.cg-kicker {font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; opacity: .6;}
+.cg-kicker {font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; opacity: .78;}
 .cg-h {font-size: 2rem; font-weight: 700; line-height: 1.15; margin: .1rem 0 .35rem;}
 .cg-lede {font-size: 1.08rem; line-height: 1.6; opacity: .92; max-width: 44rem;}
 
@@ -261,6 +263,8 @@ def trend(horizon: int | None = None):
 
 # ---------------------------------------------------------------- pieces
 def opener(kicker: str, heading: str, lede: str, section: str = ""):
+    st.session_state["current_chapter"] = f"{kicker} — {heading}"
+    st.session_state.setdefault("visited", set()).add(kicker.split("\u00b7")[0].strip())
     st.markdown(
         f'<div class="cg-kicker">{kicker}</div><div class="cg-h">{heading}</div><div class="cg-lede">{lede}</div>',
         unsafe_allow_html=True,
@@ -330,7 +334,7 @@ def strip(number: str, label: str, chip: str, note: str, where=None):
 def next_chapter(label: str, page):
     st.write("")
     st.divider()
-    left, right = st.columns([3, 1])
+    left, right = st.columns([5, 3])
     left.caption("Keep going")
     if right.button(f"{label}  →", type="primary", width="stretch"):
         st.switch_page(page)
@@ -425,20 +429,30 @@ def sidebar_readout() -> None:
     sb.divider()
     preset = PRESETS[st.session_state.preset]
     sb.markdown(f"**{preset['icon']} {st.session_state.preset}**")
-    s = scenario()
-    level = rate(s) / rate(shipped())
-    _, _, _, slope, _, _ = trend()
-    verdict, _ = verdict_of(slope)
-    sb.markdown(
-        f'<div class="cg-read">'
-        f'<div class="r"><span>Combined factor</span><b>{num(s.factor, 5)}</b></div>'
-        f'<div class="r"><span>Versus as shipped</span><b>{ratio_words(level).replace(" than", "").replace("about the same as", "same")}</b></div>'
-        f'<div class="r"><span>Hazard trend</span><b>{cg.hazard_growth(slope):+.0%}/yr</b></div>'
-        f"</div>",
-        unsafe_allow_html=True,
-    )
-    sb.caption(verdict)
-    if sb.button("Reset this scenario", width="stretch", icon=":material/restart_alt:"):
+    if st.session_state.get("current_chapter", "").startswith("Chapter 1"):
+        sb.caption(preset["about"])
+        sb.caption("Your running numbers appear here from chapter 2 onwards, and follow you through the tour.")
+    else:
+        s = scenario()
+        level = rate(s) / rate(shipped())
+        _, _, _, slope, _, _ = trend()
+        verdict, _ = verdict_of(slope)
+        sb.markdown(
+            f'<div class="cg-read">'
+            f'<div class="r"><span>Chain \u00d7 defences</span><b>{num(s.factor, 5)}</b></div>'
+            f'<div class="r"><span>Versus as shipped</span><b>{ratio_words(level).replace(" than", "").replace("about the same as", "same")}</b></div>'
+            f'<div class="r"><span>Hazard trend</span><b>{cg.hazard_growth(slope):+.0%}/yr</b></div>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        sb.caption(verdict)
+
+    changed = [NAMES.get(k, k) for k in KEYS + GROWTH_KEYS if k in preset and P().get(k) != preset[k]]
+    if changed:
+        sb.caption("Changed from the scenario: " + ", ".join(changed) + ". These follow you into every chapter.")
+    label = f"Reset {len(changed)} change{'' if len(changed) == 1 else 's'}" if changed else "Reset this scenario"
+    # a stable key: without one the changing label changes the widget id, and clicks are lost
+    if sb.button(label, key="reset_scenario", width="stretch", icon=":material/restart_alt:"):
         load_preset(st.session_state.preset)
         st.rerun()
     with sb.expander("Switch scenario"):

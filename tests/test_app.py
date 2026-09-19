@@ -92,7 +92,7 @@ def test_scenario_cards_load_a_preset_and_reset_restores_it():
     assert at.session_state.preset == "Autonomous cyber operations"
     assert at.session_state.P["C"] == 0.45
     at.session_state.P["C"] = 0.11
-    next(b for b in at.sidebar.button if "Reset" in b.label).click()
+    next(b for b in at.sidebar.button if b.label.startswith("Reset")).click()
     run(at)
     assert at.session_state.P["C"] == 0.45
 
@@ -142,7 +142,7 @@ def test_control_gap_slope_matches_the_paper_dashboard():
 def test_challenge_spends_a_budget_and_refuses_to_overspend():
     at = app("challenge")
     s = sliders(at)
-    s["Incident response capacity"].set_value(100)
+    s["Incident response capacity · 15 pts"].set_value(100)
     run(at)
     strip = next(m.value for m in at.markdown if 'class="cg-strip"' in m.value)
     assert "15 / 100 pts spent" in strip
@@ -158,7 +158,7 @@ def test_tiny_values_never_display_as_zero():
     for label in ("Capability C", "Access A", "Agency O", "Exposure X", "Propensity M"):
         s[label].set_value(0.01)
     run(at)
-    assert "× 10⁻" in next(m.value for m in at.sidebar.markdown if "Combined factor" in m.value)
+    assert "× 10⁻" in next(m.value for m in at.sidebar.markdown if "Chain" in m.value)
 
 
 def test_feedback_links_are_prefilled_and_carry_no_token():
@@ -246,3 +246,30 @@ def test_choosing_an_event_shows_its_story_and_sources_immediately():
     told = " ".join(m.value for m in at.markdown)
     assert first.summary in told, "the full account should appear once chosen"
     assert first.scenario_why in told
+
+
+def test_chapter_three_never_shows_a_single_probability():
+    at = app("lambda0")
+    shown = [m.value for m in at.metric]
+    assert "0.40%" in shown and "3.91%" in shown and "32.90%" in shown, shown
+    text = " ".join(m.value for m in at.markdown)
+    assert "Nothing about the world changed" in text
+    # the default lands on lambda0 * T = 1, where the chain and the probability coincide
+    assert "same number, because λ₀ × T = 1" in text
+
+
+def test_halving_a_factor_is_a_parallel_line_at_every_lambda0():
+    import controlgap as cg
+    import ui
+
+    base = ui.scenario.__wrapped__ if hasattr(ui.scenario, "__wrapped__") else None
+    grid = [0.01, 0.1, 1.0, 10.0]
+    p = dict(ui.PRESETS["The paper's example"])
+    full = cg.Scenario("a", C=p["C"], A=p["A"], O=p["O"], X=p["X"], M=p["M"],
+                       effectiveness=(p["e0"], p["e1"], p["e2"]), rho=p["rho"],
+                       p_I=cg.irreversibility(p["r_esc"], tau_rec=p["tau"]))
+    half = cg.Scenario("b", C=p["C"], A=p["A"] / 2, O=p["O"], X=p["X"], M=p["M"],
+                       effectiveness=(p["e0"], p["e1"], p["e2"]), rho=p["rho"],
+                       p_I=cg.irreversibility(p["r_esc"], tau_rec=p["tau"]))
+    ratios = [float(half.hazard(lam) / full.hazard(lam)) for lam in grid]
+    assert all(abs(r - 0.5) < 1e-12 for r in ratios), ratios
