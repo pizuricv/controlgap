@@ -59,6 +59,39 @@ def go(name: str):
     return st.session_state["pages"][name]
 
 
+
+def _pick_incident(key: str):
+    st.session_state["incident"] = key
+
+
+def incident_cards(on_start: bool = False):
+    """The precursor events as cards, in the same language as the scenario cards."""
+    selected = st.session_state.get("incident", INCIDENTS[0].key)
+    for col, incident in zip(st.columns(len(INCIDENTS), gap="medium"), INCIDENTS):
+        active = incident.key == selected and not on_start
+        with col.container(key=f"card_{'active' if active else incident.key}"):
+            st.markdown(
+                f'<div class="cg-card-icon">{"\u26a0\ufe0f" if incident.rung >= 3 else "\U0001f9ea"}</div>'
+                f'<div class="cg-card-name">{RUNGS[incident.rung]}</div>'
+                f'<div class="cg-card-body"><b>{incident.title}</b><br>{incident.when}</div>',
+                unsafe_allow_html=True,
+            )
+            if on_start:
+                if st.button("Look at this one", key=f"start_{incident.key}", width="stretch"):
+                    _pick_incident(incident.key)
+                    st.switch_page(go("precursors"))
+            else:
+                st.button(
+                    "Showing" if active else "Examine",
+                    key=f"pick_inc_{incident.key}",
+                    width="stretch",
+                    type="primary" if active else "secondary",
+                    disabled=active,
+                    on_click=_pick_incident,
+                    args=(incident.key,),
+                )
+
+
 # ================================================================ 1. Start here
 def start():
     opener(
@@ -117,6 +150,13 @@ For a catastrophe, **every one of these has to line up at once**:
                 on_click=load_preset,
                 args=(name,),
             )
+    st.write("")
+    st.markdown("#### Or start from something that actually happened")
+    st.caption(
+        "Three real, cited events, each scored by how close it came. They are what chapter 6 calibrates on — and the only place "
+        "in this model where real numbers can enter."
+    )
+    incident_cards(on_start=True)
     next_chapter("Chapter 2 · The chain", go("chain"))
 
 
@@ -357,14 +397,9 @@ def precursors_chapter():
         "Each summary follows its cited source. **Placing an event on this model's layers is our judgement, not the source's** — "
         "it is there to show the method. Disagree loudly; there is a button at the bottom."
     )
-    choice = st.segmented_control(
-        "Event",
-        [i.key for i in INCIDENTS],
-        format_func=lambda k: RUNGS[BY_KEY[k].rung],
-        default=INCIDENTS[0].key,
-        label_visibility="collapsed",
-    )
-    incident = BY_KEY[choice or INCIDENTS[0].key]
+    incident_cards()
+    st.write("")
+    incident = BY_KEY[st.session_state.get("incident", INCIDENTS[0].key)]
 
     left, right = st.columns([3, 2], gap="large")
     with left:

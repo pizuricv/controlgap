@@ -200,3 +200,18 @@ def test_fitting_elasticities_from_precursor_counts():
     theta_a = metric(at, "θ for access")
     assert 0.5 < float(theta_a) < 3.0, theta_a
     assert "90% interval" in next(m.delta for m in at.metric if m.label.endswith("θ for access"))
+
+
+def test_incident_cards_appear_on_the_start_page_and_select_one():
+    import incidents
+
+    at = app("start")
+    text = " ".join(m.value for m in at.markdown)
+    for incident in incidents.INCIDENTS:
+        assert incident.title in text, incident.key
+    at = app("precursors_chapter")
+    second = incidents.INCIDENTS[1]
+    next(b for b in at.button if b.key == f"pick_inc_{second.key}").click()
+    run(at)
+    assert at.session_state["incident"] == second.key
+    assert second.title in " ".join(m.value for m in at.markdown)
