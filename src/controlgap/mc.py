@@ -18,17 +18,27 @@ from .hazard import INDEX_NAMES, Elasticities, catastrophe_probability, index_te
 def beta_params(mean: float, concentration: float) -> tuple[float, float]:
     """Beta(a, b) with the given mean and concentration a + b."""
     if not 0 < mean < 1:
-        raise ValueError("mean must lie strictly between 0 and 1")
+        raise ValueError("mean must lie strictly between 0 and 1; 0 and 1 are point masses, not Beta distributions")
     return mean * concentration, (1.0 - mean) * concentration
 
 
 def sample_indices(means, concentration: float, correlation: float, n: int, rng: np.random.Generator) -> np.ndarray:
-    """Draw (n, len(means)) index values with a common Gaussian-copula correlation."""
+    """Draw (n, len(means)) index values with a common Gaussian-copula correlation.
+
+    A mean of exactly 0 or 1 is certainty, not uncertainty, so that index is held
+    constant. This is what lets the paper's worst case, propensity M = 1, be sampled.
+    """
     d = len(means)
     cov = np.full((d, d), correlation, dtype=float)
     np.fill_diagonal(cov, 1.0)
     u = stats.norm.cdf(rng.multivariate_normal(np.zeros(d), cov, size=n))
-    return np.column_stack([stats.beta.ppf(u[:, i], *beta_params(m, concentration)) for i, m in enumerate(means)])
+    columns = []
+    for i, mean in enumerate(means):
+        if mean in (0.0, 1.0):
+            columns.append(np.full(n, float(mean)))
+        else:
+            columns.append(stats.beta.ppf(u[:, i], *beta_params(mean, concentration)))
+    return np.column_stack(columns)
 
 
 @dataclass

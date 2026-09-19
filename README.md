@@ -104,6 +104,23 @@ python scripts/check_live.py https://<your-app>.streamlit.app
 It walks every chapter and checks that the scenario cards line up. Streamlit Cloud serves the app inside an iframe, so a
 check of the top-level page finds an empty wrapper — the script handles that.
 
+### Hosting it
+
+The app deploys as is to [Streamlit Community Cloud](https://share.streamlit.io) (free): choose this repository, the
+**`deploy`** branch and `app/app.py`. CI fast-forwards `deploy` only after the tests pass on `main`, so a broken commit
+never goes live.
+
+Streamlit Cloud usually redeploys within a minute of a push, but it will sometimes sit on a cached build. If a change has
+not appeared, use **Reboot app** in the app's menu on [share.streamlit.io](https://share.streamlit.io). To check a
+deployment from the command line:
+
+```bash
+python scripts/check_live.py https://<your-app>.streamlit.app
+```
+
+It walks every chapter and checks that the scenario cards line up. Streamlit Cloud serves the app inside an iframe, so a
+check of the top-level page finds an empty wrapper — the script handles that.
+
 ## Modules
 
 | Module | Paper | Contents |

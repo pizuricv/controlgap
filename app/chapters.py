@@ -514,9 +514,10 @@ def gap():
 # ================================================================ 9. Uncertainty
 @st.cache_data(show_spinner="Sampling…")
 def _mc(means: tuple, e_mean: float, rho_mean: float, pI_mean: float, conc: float, r: float, median: float, log_sd: float, T: float, n: int):
-    clip = lambda m: float(np.clip(m, 0.01, 0.99))
+    clip = lambda m: float(np.clip(m, 0.0, 1.0))
     cfg = MCConfig(index_means={k: clip(v) for k, v in means}, index_concentration=conc, correlation=r,
-                   effectiveness=beta_params(clip(e_mean), 10), rho=beta_params(clip(rho_mean), 20), p_I=beta_params(clip(pI_mean), 12),
+                   effectiveness=beta_params(np.clip(e_mean, 0.01, 0.99), 10), rho=beta_params(np.clip(rho_mean, 0.01, 0.99), 20),
+                   p_I=beta_params(np.clip(pI_mean, 0.01, 0.99), 12),
                    lambda0_median=median, lambda0_log_sd=log_sd, T=T)  # fmt: skip
     return simulate(cfg, n).probabilities, spread_decomposition(cfg, n)
 

@@ -37,7 +37,7 @@ def main(base: str) -> int:
         page = browser.new_page(viewport={"width": 1440, "height": 950})
         for path in CHAPTERS:
             page.goto(f"{base}/{path}", wait_until="domcontentloaded", timeout=120_000)
-            page.wait_for_timeout(15_000 if path == "" else 6_000)
+            page.wait_for_timeout(15_000 if path in ("", "uncertainty", "challenge") else 6_000)  # these two sample before they draw
             frame = app_frame(page)
             heading = frame.evaluate("() => document.querySelector('.cg-h')?.textContent?.trim() || ''")
             crashed = frame.evaluate("() => document.body.innerText.includes('Traceback (most recent call last)')")

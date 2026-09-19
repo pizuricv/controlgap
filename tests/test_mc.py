@@ -1,6 +1,6 @@
 import pytest
 
-from controlgap.mc import MCConfig, simulate
+from controlgap.mc import MCConfig, beta_params, simulate
 
 
 def test_section_10_summary():
@@ -34,3 +34,19 @@ def test_most_of_the_spread_is_the_lambda0_assumption():
 def test_uncertain_propensity_lowers_the_probability():
     means = dict(C=0.2, A=0.7, O=0.5, X=0.6, M=0.3)
     assert simulate(MCConfig(index_means=means), n=20_000).summary()["median"] < simulate(MCConfig(), n=20_000).summary()["median"]
+
+
+def test_certainty_is_allowed_for_an_index():
+    """The paper's worst case is propensity M = 1, which is a point mass, not a Beta."""
+    import numpy as np
+
+    from controlgap.mc import sample_indices
+
+    rng = np.random.default_rng(0)
+    drawn = sample_indices([0.2, 0.7, 0.5, 0.6, 1.0], 12.0, 0.6, 5_000, rng)
+    assert np.all(drawn[:, 4] == 1.0)
+    assert drawn[:, 0].std() > 0
+    worst = simulate(MCConfig(index_means=dict(C=0.2, A=0.7, O=0.5, X=0.6, M=1.0)), n=20_000).summary()
+    assert worst["median"] > simulate(MCConfig(index_means=dict(C=0.2, A=0.7, O=0.5, X=0.6, M=0.3)), n=20_000).summary()["median"]
+    with pytest.raises(ValueError, match="point masses"):
+        beta_params(1.0, 12.0)
